@@ -126,6 +126,12 @@
   "item.botanicalextramachinery.mana_storage_cell_64m": "64M ME Mana Storage Cell",
   "item.botanicalextramachinery.mana_storage_cell_256m": "256M ME Mana Storage Cell",
 
+  "entity.botanicalextramachinery.base_spark.png": "Base Spark",
+  "entity.botanicalextramachinery.malachite_spark.png": "Malachite Spark",
+  "entity.botanicalextramachinery.saffron_spark.png": "Saffron Spark",
+  "entity.botanicalextramachinery.shadow_spark.png": "Shadow Spark",
+  "entity.botanicalextramachinery.crimson_spark.png": "Crimson Spark",
+
   "botanicalextramachinery.tooltip.screen.mana": "%1$s / %2$s Mana",
   "botanicalextramachinery.tooltip.screen.energy": "%1$s / %2$s RF",
   "botanicalextramachinery.tooltip.screen.water": "%1$s / %2$s",
