@@ -52,7 +52,7 @@
   "block.botanicalextramachinery.advanced_orechid": "高级机械凝矿兰",
   "block.botanicalextramachinery.ultimate_orechid": "终极机械凝矿兰",
 
-  "block.botanicalextramachinery.jaded_amaranthus": "翡翠苋",
+  "block.botanicalextramachinery.jaded_amaranthus": "机械翡翠苋",
   "block.botanicalextramachinery.greenhouse": "温室",
 
   "block.botanicalextramachinery.malachite_dragonstone_block": "孔雀石龙晶块",
@@ -154,7 +154,7 @@
   "botanicalextramachinery.tooltip.item.upgrade_speed": "§6将合成速度加快§d4倍。§c(最多1个)",
   "botanicalextramachinery.tooltip.item.catalyst_petal_1": "将§d神秘花§r转化为§a花瓣§r",
   "botanicalextramachinery.tooltip.item.catalyst_petal_2": "将§d神秘花§r转化为§a花瓣块§r",
-  "botanicalextramachinery.tooltip.item.catalyst_petal_3": "用于§6机械玉髓不凋花§r",
+  "botanicalextramachinery.tooltip.item.catalyst_petal_3": "用于§6机械翡翠苋§r",
   "botanicalextramachinery.tooltip.item.sparkTransfer": "§a传输 %1$s 魔力",
 
   "botanicalextramachinery.tooltip.item.upgradeCostEnergy": "§6减少§a50%§6能量消耗",
