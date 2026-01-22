@@ -443,7 +443,10 @@ public class BlockEntityGreenhouse extends ExtraBotanicalTile implements IEnergy
         long craftableByEnergy = this.getEnergyStored() / energyPerFuel;
         long craftableByMana = manaPerFuel == 0 ? 0 : manaSpace / manaPerFuel;
 
-        long craftCount = manaPerFuel > manaSpace && manaSpace > 0 ? 1 : craftableByMana;
+        // Do not allow partial consumption that would overproduce mana.
+        // Previously there was a special case that allowed crafting 1 unit even if manaPerFuel > manaSpace.
+        // Remove that: require at least one full unit to fit into the remaining mana space.
+        long craftCount = craftableByMana;
         craftCount = Math.min(craftCount, craftableByEnergy);
         craftCount = Math.min(craftCount, fuelAvailable);
 
