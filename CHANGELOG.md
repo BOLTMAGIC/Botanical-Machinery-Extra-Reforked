@@ -2,7 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
-## v0.1.1 — 2025-12-23
+## v0.1.2.9.2 — 2026-02-23
+
+### Added
+- Pure Daisy automation: converts water into Snow Blocks every 10 seconds (200 ticks).
+- Tier multipliers for generated Snow Blocks: base = 2, upgraded = 4, advanced = 8, ultimate = 16.
+- consumption is 1000 mB of water per Snow Block.
+
+### Changed
+- Daisy now fills 8 inventory slots up to the tier multiplier every 10s, bounded by available water and slot limits.
+- Progress towards the next generation cycle (waterProgress) is persisted to NBT and dispatched to clients.
+
+### Fixed
+- Various syntax and comment cleanups; compile issues resolved.
+
+
+## v0.1.2.9 — 2025-12-23
 
 ### Added
 - Conditional recipe loading for MythicBotany-dependent machines
