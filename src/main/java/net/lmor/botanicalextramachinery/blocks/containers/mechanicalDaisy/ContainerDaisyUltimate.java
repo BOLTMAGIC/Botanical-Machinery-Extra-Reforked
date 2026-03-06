@@ -18,7 +18,8 @@ import org.moddingx.libx.menu.BlockEntityMenu;
 import javax.annotation.Nonnull;
 
 public class ContainerDaisyUltimate extends BlockEntityMenu<BlockEntityDaisyUltimate> {
-    private static final int SIZE_INVENTORY = 19;
+    // Force 8 inventory slots to match BlockEntityDaisyPattern which always uses 8 slots internally.
+    private static final int SIZE_INVENTORY = 8;
     public final static int WIDTH_GUI = 208;
     public final static int HEIGHT_GUI = 140;
 
@@ -27,6 +28,7 @@ public class ContainerDaisyUltimate extends BlockEntityMenu<BlockEntityDaisyUlti
 
         IItemHandlerModifiable inventory = this.blockEntity.getInventory();
 
+        // Only the first 8 machine slots are added (0..7). The upgrade slot is added separately below.
         this.addSlot(new SlotItemHandler(inventory, 0, 96, 34));
         this.addSlot(new SlotItemHandler(inventory, 1, 118, 40));
         this.addSlot(new SlotItemHandler(inventory, 2, 124, 62));
@@ -35,17 +37,8 @@ public class ContainerDaisyUltimate extends BlockEntityMenu<BlockEntityDaisyUlti
         this.addSlot(new SlotItemHandler(inventory, 5, 74, 84));
         this.addSlot(new SlotItemHandler(inventory, 6, 68, 62));
         this.addSlot(new SlotItemHandler(inventory, 7, 74, 40));
-        this.addSlot(new SlotItemHandler(inventory, 8, 74, 19));
-        this.addSlot(new SlotItemHandler(inventory, 9, 50, 40));
-        this.addSlot(new SlotItemHandler(inventory, 10, 40, 62));
-        this.addSlot(new SlotItemHandler(inventory, 11, 50, 84));
-        this.addSlot(new SlotItemHandler(inventory, 12, 74, 105));
-        this.addSlot(new SlotItemHandler(inventory, 13, 118, 19));
-        this.addSlot(new SlotItemHandler(inventory, 14, 142, 40));
-        this.addSlot(new SlotItemHandler(inventory, 15, 152, 62));
-        this.addSlot(new SlotItemHandler(inventory, 16, 142, 84));
-        this.addSlot(new SlotItemHandler(inventory, 17, 118, 105));
 
+        // Upgrade slot (separate handler)
         this.addSlot(new SlotItemHandler(this.blockEntity.getInventoryUpgrade(), 0, 166, 105));
 
         int[] x_y = ScreenAddInventory.getCoordInventorySlot(ScreenInventory.ULTIMATE, WIDTH_GUI, HEIGHT_GUI);

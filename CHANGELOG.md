@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+
+## v0.1.2.9.3 — 2026-03-06
+
+-Fixed crash when opening Daisy GUI (slot index out of range).
+-Force mechanical daisy containers to use 8 inventory slots to match block entity behavior.
+-Prevents invalid slot access and GUI rendering exceptions.
+
 ## v0.1.2.9.2 — 2026-02-23
 
 ### Added
