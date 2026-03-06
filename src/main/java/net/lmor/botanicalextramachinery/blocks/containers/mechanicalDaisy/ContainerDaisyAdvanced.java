@@ -18,7 +18,8 @@ import org.moddingx.libx.menu.BlockEntityMenu;
 import javax.annotation.Nonnull;
 
 public class ContainerDaisyAdvanced extends BlockEntityMenu<BlockEntityDaisyAdvanced> {
-    private static final int SIZE_INVENTORY = 14;
+    // Force 8 inventory slots to match BlockEntity
+    private static final int SIZE_INVENTORY = 8;
     public final static int WIDTH_GUI = 196;
     public final static int HEIGHT_GUI = 124;
 
@@ -35,12 +36,6 @@ public class ContainerDaisyAdvanced extends BlockEntityMenu<BlockEntityDaisyAdva
         this.addSlot(new SlotItemHandler(inventory, 5, 68, 76));
         this.addSlot(new SlotItemHandler(inventory, 6, 62, 54));
         this.addSlot(new SlotItemHandler(inventory, 7, 68, 32));
-        this.addSlot(new SlotItemHandler(inventory, 8, 44, 32));
-        this.addSlot(new SlotItemHandler(inventory, 9, 34, 54));
-        this.addSlot(new SlotItemHandler(inventory, 10, 43, 76));
-        this.addSlot(new SlotItemHandler(inventory, 11, 136, 32));
-        this.addSlot(new SlotItemHandler(inventory, 12, 146, 54));
-        this.addSlot(new SlotItemHandler(inventory, 13, 136, 76));
 
         int[] x_y = ScreenAddInventory.getCoordInventorySlot(ScreenInventory.ADVANCED, WIDTH_GUI, HEIGHT_GUI);
         this.layoutPlayerInventorySlots(x_y[0], x_y[1]);
@@ -49,7 +44,7 @@ public class ContainerDaisyAdvanced extends BlockEntityMenu<BlockEntityDaisyAdva
     @Nonnull
     public ItemStack quickMoveStack(@Nonnull Player player, int index) {
         ItemStack itemstack = ItemStack.EMPTY;
-        Slot slot = (Slot)this.slots.get(index);
+        Slot slot = this.slots.get(index);
         if (slot.hasItem()) {
             ItemStack stack = slot.getItem();
             itemstack = stack.copy();
