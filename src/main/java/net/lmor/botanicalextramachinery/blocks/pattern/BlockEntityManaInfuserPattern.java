@@ -33,6 +33,7 @@ import net.minecraftforge.items.IItemHandlerModifiable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.moddingx.libx.crafting.RecipeHelper;
+import net.lmor.botanicalextramachinery.util.RecipeValidityCache;
 import org.moddingx.libx.inventory.BaseItemStackHandler;
 
 import javax.annotation.Nonnull;
@@ -93,7 +94,7 @@ public class BlockEntityManaInfuserPattern extends WorkingTile<net.minecraft.wor
 
         if (UPGRADE_SLOT_1 != -1 && UPGRADE_SLOT_2 != -1){
             this.inventory = BaseItemStackHandler.builder(LAST_OUTPUT_SLOT + 1)
-                    .validator((stack) -> this.level != null && RecipeHelper.isItemValidInput(this.level.getRecipeManager(), (net.minecraft.world.item.crafting.RecipeType) finalInfuserType, stack), Range.closedOpen(FIRST_INPUT_SLOT, LAST_INPUT_SLOT + 1))
+                    .validator((stack) -> this.level != null && RecipeValidityCache.isItemValidInput(this.level.getRecipeManager(), (net.minecraft.world.item.crafting.RecipeType) finalInfuserType, stack), Range.closedOpen(FIRST_INPUT_SLOT, LAST_INPUT_SLOT + 1))
                     .validator((stack) -> {return (stack.getItem() == ModItems.catalystSpeed.asItem() || stack.getItem() == ModItems.catalystManaInfinity.asItem());}, UPGRADE_SLOT_1, UPGRADE_SLOT_2)
                     .output(Range.closedOpen(FIRST_OUTPUT_SLOT, LAST_OUTPUT_SLOT + 1))
                     .slotLimit(1, UPGRADE_SLOT_1, UPGRADE_SLOT_2)
@@ -102,7 +103,7 @@ public class BlockEntityManaInfuserPattern extends WorkingTile<net.minecraft.wor
         }
         else {
             this.inventory = BaseItemStackHandler.builder(LAST_OUTPUT_SLOT + 1)
-                    .validator((stack) -> this.level != null && RecipeHelper.isItemValidInput(this.level.getRecipeManager(), (net.minecraft.world.item.crafting.RecipeType) finalInfuserType, stack), Range.closedOpen(FIRST_INPUT_SLOT, LAST_INPUT_SLOT + 1))
+                    .validator((stack) -> this.level != null && RecipeValidityCache.isItemValidInput(this.level.getRecipeManager(), (net.minecraft.world.item.crafting.RecipeType) finalInfuserType, stack), Range.closedOpen(FIRST_INPUT_SLOT, LAST_INPUT_SLOT + 1))
                     .output(Range.closedOpen(FIRST_OUTPUT_SLOT, LAST_OUTPUT_SLOT + 1))
                     .contentsChanged(() -> { this.setChanged();this.setDispatchable();this.needsRecipeUpdate();})
                     .build();

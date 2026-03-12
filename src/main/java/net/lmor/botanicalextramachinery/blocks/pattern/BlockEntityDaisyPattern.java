@@ -80,6 +80,8 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
     private final FluidTank tank;
     private final LazyOptional<IFluidHandler> lazyFluid;
     private int waterProgress = 0;
+    // cache PureDaisy recipes to avoid repeated lookups
+    private static volatile java.util.List<PureDaisyRecipe> STATIC_PURE_DAISY_RECIPES = null;
 
     public BlockEntityDaisyPattern(BlockEntityType<?> type, BlockPos pos, BlockState state, int countSlotInventory,
                                    SettingPattern settingPattern, int... slotUpgrade) {
@@ -299,16 +301,29 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
 
     @Nullable
     public PureDaisyRecipe getRecipe(BlockState state) {
-        if (this.level != null) {
-            for (PureDaisyRecipe pureDaisyRecipe : this.level.getRecipeManager().getAllRecipesFor(BotaniaRecipeTypes.PURE_DAISY_TYPE)) {
-                if ((Recipe<?>) pureDaisyRecipe instanceof PureDaisyRecipe recipe) {
-                    if (recipe.matches(this.level, this.worldPosition, null, state)) {
-                        return recipe;
-                    }
+        if (this.level == null) return null;
+
+        if (STATIC_PURE_DAISY_RECIPES == null) {
+            synchronized (BlockEntityDaisyPattern.class) {
+                if (STATIC_PURE_DAISY_RECIPES == null) {
+                    STATIC_PURE_DAISY_RECIPES = java.util.List.copyOf(this.level.getRecipeManager().getAllRecipesFor(BotaniaRecipeTypes.PURE_DAISY_TYPE));
                 }
             }
         }
+
+        for (PureDaisyRecipe pureDaisyRecipe : STATIC_PURE_DAISY_RECIPES) {
+            if ((Recipe<?>) pureDaisyRecipe instanceof PureDaisyRecipe recipe) {
+                if (recipe.matches(this.level, this.worldPosition, null, state)) {
+                    return recipe;
+                }
+            }
+        }
+
         return null;
+    }
+
+    public static void invalidatePureDaisyCache() {
+        STATIC_PURE_DAISY_RECIPES = null;
     }
 
     public InventoryHandler getInventory() {

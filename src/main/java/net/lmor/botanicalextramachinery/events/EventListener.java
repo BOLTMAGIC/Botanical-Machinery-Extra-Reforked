@@ -13,6 +13,9 @@ import net.minecraftforge.event.OnDatapackSyncEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
+import net.lmor.botanicalextramachinery.blocks.pattern.BlockEntityOrechidPattern;
+import net.lmor.botanicalextramachinery.blocks.pattern.BlockEntityDaisyPattern;
+import net.lmor.botanicalextramachinery.util.RecipeValidityCache;
 
 @Mod.EventBusSubscriber(modid = ExtraMachinery.MOD_ID)
 public class EventListener {
@@ -25,6 +28,9 @@ public class EventListener {
         BlockEntityManaPoolUpgraded.invalidateCatalysts();
         BlockEntityManaPoolAdvanced.invalidateCatalysts();
         BlockEntityManaPoolUltimate.invalidateCatalysts();
+        RecipeValidityCache.invalidateAll();
+        BlockEntityOrechidPattern.invalidateOrechidCaches();
+        BlockEntityDaisyPattern.invalidatePureDaisyCache();
     }
 
     @SubscribeEvent
