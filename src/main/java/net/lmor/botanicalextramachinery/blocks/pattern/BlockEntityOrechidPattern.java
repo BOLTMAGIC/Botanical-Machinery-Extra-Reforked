@@ -58,6 +58,11 @@ public class BlockEntityOrechidPattern extends ExtraBotanicalTile
     private final BaseItemStackHandler inventory;
     private final SettingPattern settingPattern;
 
+    // Static caches for inputs/outputs to avoid scanning recipes every time
+    private static volatile Set<Item> STATIC_ORECHID_INPUTS = null;
+    private static volatile Set<Item> STATIC_ORECHID_OUTPUTS = null;
+    private static volatile java.util.List<OrechidRecipe> STATIC_ORECHID_RECIPES = null;
+
     private int cooldown;
 
     private int timeCheckOutputSlot = LibXServerConfig.tickOutputSlots;
@@ -282,49 +287,66 @@ public class BlockEntityOrechidPattern extends ExtraBotanicalTile
     }
 
     public List<Item> getOutputs(){
-        List<Item> outputs = new ArrayList<>();
-
-        if (this.level == null) return List.of();
-
-        this.level.getRecipeManager().getAllRecipesFor(BotaniaRecipeTypes.ORECHID_TYPE).forEach((recipe) -> {
-            if (recipe.getOutput() != null) {
-                recipe.getOutput().getDisplayedStacks().stream().map(ItemStack::getItem).forEach((item -> {
-                    if (!outputs.contains(item)){
-                        outputs.add(item);
+        if (STATIC_ORECHID_OUTPUTS == null) {
+            synchronized (BlockEntityOrechidPattern.class) {
+                if (STATIC_ORECHID_OUTPUTS == null) {
+                    Set<Item> outputs = new LinkedHashSet<>();
+                    if (this.level != null) {
+                        this.level.getRecipeManager().getAllRecipesFor(BotaniaRecipeTypes.ORECHID_TYPE).forEach(recipe -> {
+                            if (recipe.getOutput() != null) {
+                                recipe.getOutput().getDisplayedStacks().stream().map(ItemStack::getItem).forEach(outputs::add);
+                            }
+                        });
                     }
-                }));
+                    STATIC_ORECHID_OUTPUTS = outputs;
+                }
             }
-
-        });
-
-        return outputs;
+        }
+        return STATIC_ORECHID_OUTPUTS == null ? List.of() : List.copyOf(STATIC_ORECHID_OUTPUTS);
     }
 
     public List<Item> getInputs(){
-        List<Item> inputs = new ArrayList<>();
-
-        if (this.level == null) return List.of();
-
-        this.level.getRecipeManager().getAllRecipesFor(BotaniaRecipeTypes.ORECHID_TYPE).forEach((recipe) -> {
-            if (recipe.getInput() != null) {
-                recipe.getInput().getDisplayedStacks().stream().map(ItemStack::getItem).forEach((item -> {
-                    if (!inputs.contains(item)){
-                        inputs.add(item);
+        if (STATIC_ORECHID_INPUTS == null) {
+            synchronized (BlockEntityOrechidPattern.class) {
+                if (STATIC_ORECHID_INPUTS == null) {
+                    Set<Item> inputs = new LinkedHashSet<>();
+                    if (this.level != null) {
+                        this.level.getRecipeManager().getAllRecipesFor(BotaniaRecipeTypes.ORECHID_TYPE).forEach(recipe -> {
+                            if (recipe.getInput() != null) {
+                                recipe.getInput().getDisplayedStacks().stream().map(ItemStack::getItem).forEach(inputs::add);
+                            }
+                        });
                     }
-                }));
+                    STATIC_ORECHID_INPUTS = inputs;
+                }
             }
+        }
+        return STATIC_ORECHID_INPUTS == null ? List.of() : List.copyOf(STATIC_ORECHID_INPUTS);
+    }
 
-        });
-
-        return inputs;
+    public static void invalidateOrechidCaches() {
+        STATIC_ORECHID_INPUTS = null;
+        STATIC_ORECHID_OUTPUTS = null;
+        STATIC_ORECHID_RECIPES = null;
     }
 
     public @Nullable OrechidRecipe getRecipeOrechid(){
         List<WeightedEntry.Wrapper<OrechidRecipe>> values = new ArrayList();
 
-        this.level.getRecipeManager().getAllRecipesFor(BotaniaRecipeTypes.ORECHID_TYPE).forEach((recipe) -> {
+        java.util.List<OrechidRecipe> recipes = STATIC_ORECHID_RECIPES;
+        if (recipes == null) {
+            if (this.level == null) return null;
+            synchronized (BlockEntityOrechidPattern.class) {
+                if (STATIC_ORECHID_RECIPES == null) {
+                    STATIC_ORECHID_RECIPES = java.util.List.copyOf(this.level.getRecipeManager().getAllRecipesFor(BotaniaRecipeTypes.ORECHID_TYPE));
+                }
+                recipes = STATIC_ORECHID_RECIPES;
+            }
+        }
+
+        for (OrechidRecipe recipe : recipes) {
             values.add(WeightedEntry.wrap(recipe, recipe.getWeight()));
-        });
+        }
 
         return WeightedRandom.getRandomItem(this.level.random, values).map(WeightedEntry.Wrapper::getData).orElse(null);
     }
@@ -332,15 +354,26 @@ public class BlockEntityOrechidPattern extends ExtraBotanicalTile
     public @Nullable OrechidRecipe getRecipeOrechidFilter(){
         List<WeightedEntry.Wrapper<OrechidRecipe>> values = new ArrayList();
 
-        this.level.getRecipeManager().getAllRecipesFor(BotaniaRecipeTypes.ORECHID_TYPE).forEach((recipe) -> {
-            recipe.getOutput().getDisplayedStacks().stream().forEach(itemStack -> {
-                for (int index: FILTER_SLOTS){
-                    if (inventory.getStackInSlot(index).getItem() == itemStack.getItem()){
+        java.util.List<OrechidRecipe> recipes = STATIC_ORECHID_RECIPES;
+        if (recipes == null) {
+            if (this.level == null) return null;
+            synchronized (BlockEntityOrechidPattern.class) {
+                if (STATIC_ORECHID_RECIPES == null) {
+                    STATIC_ORECHID_RECIPES = java.util.List.copyOf(this.level.getRecipeManager().getAllRecipesFor(BotaniaRecipeTypes.ORECHID_TYPE));
+                }
+                recipes = STATIC_ORECHID_RECIPES;
+            }
+        }
+
+        for (OrechidRecipe recipe : recipes) {
+            for (ItemStack itemStack : recipe.getOutput().getDisplayedStacks()) {
+                for (int index : FILTER_SLOTS) {
+                    if (inventory.getStackInSlot(index).getItem() == itemStack.getItem()) {
                         values.add(WeightedEntry.wrap(recipe, recipe.getWeight()));
                     }
                 }
-            });
-        });
+            }
+        }
 
         return WeightedRandom.getRandomItem(this.level.random, values).map(WeightedEntry.Wrapper::getData).orElse(null);
     }

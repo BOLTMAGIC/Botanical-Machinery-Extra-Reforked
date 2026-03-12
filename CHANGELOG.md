@@ -2,27 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
-
-## v0.1.2.9.3 — 2026-03-06
-
--Fixed crash when opening Daisy GUI (slot index out of range).
--Force mechanical daisy containers to use 8 inventory slots to match block entity behavior.
--Prevents invalid slot access and GUI rendering exceptions.
-
-## v0.1.2.9.2 — 2026-02-23
-
-### Added
-- Pure Daisy automation: converts water into Snow Blocks every 10 seconds (200 ticks).
-- Tier multipliers for generated Snow Blocks: base = 2, upgraded = 4, advanced = 8, ultimate = 16.
-- consumption is 1000 mB of water per Snow Block.
+## v0.1.2.9.4 — 2026-03-12
 
 ### Changed
-- Daisy now fills 8 inventory slots up to the tier multiplier every 10s, bounded by available water and slot limits.
-- Progress towards the next generation cycle (waterProgress) is persisted to NBT and dispatched to clients.
+- Performance: Wide-ranging optimizations to recipe/pattern handling to reduce CPU usage in hot paths
+  - Added: `RecipeValidityCache` — a lightweight, conservative cache for frequent calls to `RecipeHelper.isItemValidInput(...)`. ItemStacks with NBT are not cached; cache is invalidated on datapack/recipe reload.
+  - Ingredient fast-paths: simple Ingredients are now preloaded internally as `Item[]` arrays and matched by item equality; only complex (NBT/partial-NBT) Ingredients fall back to `Ingredient.test(...)`.
+  - Hot-path refactors: iterators/streams in pattern/recipe matching paths replaced with index-based loops, and unnecessary temporary allocations reduced.
+  - Cache invalidation: all relevant caches are cleared on datapack/recipe reload (wired into `EventListener`).
 
 ### Fixed
-- Various syntax and comment cleanups; compile issues resolved.
-
+- Fixes during refactor/optimization: several compiler errors caused by inconsistent intermediate edits were corrected; project builds successfully (BUILD SUCCESSFUL).
 
 ## v0.1.2.9 — 2025-12-23
 
