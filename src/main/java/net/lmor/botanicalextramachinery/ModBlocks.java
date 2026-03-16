@@ -111,7 +111,6 @@ import org.moddingx.libx.base.BlockBase;
 import org.moddingx.libx.base.tile.MenuBlockBE;
 import org.moddingx.libx.menu.BlockEntityMenu;
 import net.minecraftforge.fml.ModList;
-import java.awt.*;
 
 @RegisterClass(registry = "BLOCKS", priority = 1)
 public class ModBlocks {
@@ -168,10 +167,14 @@ public class ModBlocks {
     public static final MenuBlockBE<BlockEntityJadedAmaranthus, ContainerJadedAmaranthus> jadedAmaranthus;
     public static final MenuBlockBE<BlockEntityGreenhouse, ContainerGreenhouse> greenhouse;
 
-    public static MenuBlockBE<BlockEntityManaInfuserBase, ContainerManaInfuserBase> baseManaInfuser;
-    public static MenuBlockBE<BlockEntityManaInfuserUpgraded, ContainerManaInfuserUpgraded> upgradedManaInfuser;
-    public static MenuBlockBE<BlockEntityManaInfuserAdvanced, ContainerManaInfuserAdvanced> advancedManaInfuser;
-    public static MenuBlockBE<BlockEntityManaInfuserUltimate, ContainerManaInfuserUltimate> ultimateManaInfuser;
+    @Reg.Exclude
+    public static final MenuBlockBE<BlockEntityManaInfuserBase, ContainerManaInfuserBase> baseManaInfuser;
+    @Reg.Exclude
+    public static final MenuBlockBE<BlockEntityManaInfuserUpgraded, ContainerManaInfuserUpgraded> upgradedManaInfuser;
+    @Reg.Exclude
+    public static final MenuBlockBE<BlockEntityManaInfuserAdvanced, ContainerManaInfuserAdvanced> advancedManaInfuser;
+    @Reg.Exclude
+    public static final MenuBlockBE<BlockEntityManaInfuserUltimate, ContainerManaInfuserUltimate> ultimateManaInfuser;
 
     public ModBlocks() {
 

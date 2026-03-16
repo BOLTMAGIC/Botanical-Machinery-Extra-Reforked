@@ -4,11 +4,9 @@
     "botanicalextramachinery:crimson_dragonstone_block",
     "botanicalextramachinery:shadow_ingot_block",
     "botanicalextramachinery:crimson_ingot_block",
-    "botanicalextramachinery:malachite_dragonstone_block",
-    "botanicalextramachinery:malachite_ingot_block",
-    "botanicalextramachinery:aureate_dragonstone_block",
     "botanicalextramachinery:aureate_ingot_block",
-    "botanicalextramachinery:mazarine_dragonstone_block",
-    "botanicalextramachinery:mazarine_ingot_block"
+    "botanicalextramachinery:aureate_dragonstone_block",
+    "botanicalextramachinery:mazarine_ingot_block",
+    "botanicalextramachinery:mazarine_dragonstone_block"
   ]
 }

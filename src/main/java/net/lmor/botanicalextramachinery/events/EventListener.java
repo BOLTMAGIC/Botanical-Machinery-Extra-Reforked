@@ -2,7 +2,6 @@ package net.lmor.botanicalextramachinery.events;
 import net.lmor.botanicalextramachinery.ExtraMachinery;
 import net.lmor.botanicalextramachinery.blocks.flowersGreenhouse.GenFlowers;
 import net.lmor.botanicalextramachinery.blocks.flowersGreenhouse.flowers.*;
-import net.lmor.botanicalextramachinery.blocks.tiles.BlockEntityGreenhouse;
 import net.lmor.botanicalextramachinery.blocks.tiles.mechanicalManaPool.BlockEntityManaPoolAdvanced;
 import net.lmor.botanicalextramachinery.blocks.tiles.mechanicalManaPool.BlockEntityManaPoolBase;
 import net.lmor.botanicalextramachinery.blocks.tiles.mechanicalManaPool.BlockEntityManaPoolUltimate;
@@ -42,34 +41,31 @@ public class EventListener {
         GenFlowers.addAllGenFlowers(BotaniaFlowerBlocks.narslimmus.asItem(), new Narslimmus());
         GenFlowers.addAllGenFlowers(BotaniaFlowerBlocks.rafflowsia.asItem(), new Rafflowsia());
         GenFlowers.addAllGenFlowers(BotaniaFlowerBlocks.rosaArcana.asItem(), new RosaArcana());
-
         if (ModList.get().isLoaded("mythicbotany")){
             try {
-                // Use reflection to avoid hard dependency on MythicBotany classes
+                // Use reflection to avoid a hard compile-time dependency on MythicBotany
                 Class<?> mythicModBlocks = Class.forName("mythicbotany.register.ModBlocks");
                 java.lang.reflect.Field f = mythicModBlocks.getField("witherAconite");
                 Object witherBlock = f.get(null);
                 if (witherBlock != null) {
-                    // Call asItem() reflectively
-                    java.lang.reflect.Method asItem = witherBlock.getClass().getMethod("asItem");
-                    Object item = asItem.invoke(witherBlock);
-                    if (item instanceof net.minecraft.world.item.Item) {
-                        GenFlowers.addAllGenFlowers((net.minecraft.world.item.Item)item, new WitherAconite());
-                    } else if (item instanceof net.minecraft.world.item.ItemStack) {
-                        GenFlowers.addAllGenFlowers(((net.minecraft.world.item.ItemStack)item).getItem(), new WitherAconite());
+                    // Many block wrapper types expose asItem(); call it reflectively if present
+                    try {
+                        java.lang.reflect.Method asItem = witherBlock.getClass().getMethod("asItem");
+                        Object item = asItem.invoke(witherBlock);
+                        if (item instanceof net.minecraft.world.item.Item) {
+                            GenFlowers.addAllGenFlowers((net.minecraft.world.item.Item) item, new WitherAconite());
+                        } else if (item instanceof net.minecraft.world.item.ItemStack) {
+                            GenFlowers.addAllGenFlowers(((net.minecraft.world.item.ItemStack) item).getItem(), new WitherAconite());
+                        }
+                    } catch (NoSuchMethodException nsme) {
+                        // If there's no asItem(), try treating the field value as a Block
+                        if (witherBlock instanceof net.minecraft.world.level.block.Block) {
+                            GenFlowers.addAllGenFlowers(((net.minecraft.world.level.block.Block) witherBlock).asItem(), new WitherAconite());
+                        }
                     }
                 }
-            } catch (ClassNotFoundException | NoSuchFieldException | IllegalAccessException | NoSuchMethodException | java.lang.reflect.InvocationTargetException e) {
+            } catch (ClassNotFoundException | NoSuchFieldException | IllegalAccessException | java.lang.reflect.InvocationTargetException e) {
                 // MythicBotany not present or reflection failed; skip adding the flower
-            }
-        }
-
-                if (val instanceof net.minecraft.world.level.block.Block) {
-                    net.minecraft.world.level.block.Block block = (net.minecraft.world.level.block.Block) val;
-                    GenFlowers.addAllGenFlowers(block.asItem(), new WitherAconite());
-                }
-            } catch (Throwable t) {
-                // ignore: if reflection fails, skip adding the flower
             }
         }
     }
