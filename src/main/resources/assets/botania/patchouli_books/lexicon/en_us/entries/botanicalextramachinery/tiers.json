@@ -37,6 +37,16 @@
       "type": "botania:terrasteel",
       "title": "item.botanicalextramachinery.crimson_ingot",
       "recipe": "botanicalextramachinery:terra_plate/crimson_ingot"
+    },
+    {
+      "type": "botania:terrasteel",
+      "title": "item.botanicalextramachinery.aureate_ingot",
+      "recipe": "botanicalextramachinery:terra_plate/aureate_ingot"
+    },
+    {
+      "type": "botania:terrasteel",
+      "title": "item.botanicalextramachinery.mazarine_ingot",
+      "recipe": "botanicalextramachinery:terra_plate/mazarine_ingot"
     }
   ]
 }
