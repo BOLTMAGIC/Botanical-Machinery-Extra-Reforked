@@ -14,6 +14,8 @@ public class BlockStates extends BlockStateProviderBase {
         this.manualModel(ModBlocks.saffronDragonstoneBlock);
         this.manualModel(ModBlocks.shadowDragonstoneBlock);
         this.manualModel(ModBlocks.crimsonDragonstoneBlock);
+        this.manualModel(ModBlocks.aureateDragonstoneBlock);
+        this.manualModel(ModBlocks.mazarineDragonstoneBlock);
 
         this.manualModel(ModBlocks.baseAlfheimMarket);
         this.manualModel(ModBlocks.upgradedAlfheimMarket);

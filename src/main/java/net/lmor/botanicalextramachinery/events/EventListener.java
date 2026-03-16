@@ -1,6 +1,4 @@
 package net.lmor.botanicalextramachinery.events;
-
-import mythicbotany.register.ModBlocks;
 import net.lmor.botanicalextramachinery.ExtraMachinery;
 import net.lmor.botanicalextramachinery.blocks.flowersGreenhouse.GenFlowers;
 import net.lmor.botanicalextramachinery.blocks.flowersGreenhouse.flowers.*;
@@ -40,7 +38,24 @@ public class EventListener {
         GenFlowers.addAllGenFlowers(BotaniaFlowerBlocks.rosaArcana.asItem(), new RosaArcana());
 
         if (ModList.get().isLoaded("mythicbotany")){
-            GenFlowers.addAllGenFlowers(ModBlocks.witherAconite.asItem(), new WitherAconite());
+            try {
+                // Use reflection to avoid hard dependency on MythicBotany classes
+                Class<?> mythicModBlocks = Class.forName("mythicbotany.register.ModBlocks");
+                java.lang.reflect.Field f = mythicModBlocks.getField("witherAconite");
+                Object witherBlock = f.get(null);
+                if (witherBlock != null) {
+                    // Call asItem() reflectively
+                    java.lang.reflect.Method asItem = witherBlock.getClass().getMethod("asItem");
+                    Object item = asItem.invoke(witherBlock);
+                    if (item instanceof net.minecraft.world.item.Item) {
+                        GenFlowers.addAllGenFlowers((net.minecraft.world.item.Item)item, new WitherAconite());
+                    } else if (item instanceof net.minecraft.world.item.ItemStack) {
+                        GenFlowers.addAllGenFlowers(((net.minecraft.world.item.ItemStack)item).getItem(), new WitherAconite());
+                    }
+                }
+            } catch (ClassNotFoundException | NoSuchFieldException | IllegalAccessException | NoSuchMethodException | java.lang.reflect.InvocationTargetException e) {
+                // MythicBotany not present or reflection failed; skip adding the flower
+            }
         }
 
     }

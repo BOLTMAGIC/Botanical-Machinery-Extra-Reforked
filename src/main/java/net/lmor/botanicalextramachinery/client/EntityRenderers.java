@@ -12,6 +12,8 @@ public class EntityRenderers {
         consumer.accept(ModEntities.SAFFRON_SPARK, RenderSaffronManaSpark::new);
         consumer.accept(ModEntities.SHADOW_SPARK, RenderShadowManaSpark::new);
         consumer.accept(ModEntities.CRIMSON_SPARK, RenderCrimsonManaSpark::new);
+        consumer.accept(ModEntities.AUREATE_SPARK, RenderAureateManaSpark::new);
+        consumer.accept(ModEntities.MAZARINE_SPARK, RenderMazarineManaSpark::new);
     }
 
 }

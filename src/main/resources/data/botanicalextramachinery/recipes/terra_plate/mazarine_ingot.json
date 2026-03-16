@@ -1,0 +1,28 @@
+{
+  "type": "botania:terra_plate",
+  "ingredients": [
+    {
+      "item": "botanicalextramachinery:aureate_ingot"
+    },
+    {
+      "item": "botania:gaia_ingot"
+    },
+    {
+      "item": "botania:gaia_ingot"
+    },
+    {
+      "item": "botania:gaia_ingot"
+    },
+    {
+      "item": "botania:gaia_ingot"
+    },
+    {
+      "item": "botanicalextramachinery:aureate_ingot_block"
+    }
+  ],
+  "mana": 5000000,
+  "result": {
+    "item": "botanicalextramachinery:mazarine_ingot"
+  }
+}
+

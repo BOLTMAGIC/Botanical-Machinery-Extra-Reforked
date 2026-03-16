@@ -25,6 +25,8 @@ public class LibResources {
     public static final ResourceLocation SAFFRON_SPARK = loc("saffron_spark");
     public static final ResourceLocation SHADOW_SPARK = loc("shadow_spark");
     public static final ResourceLocation CRIMSON_SPARK = loc("crimson_spark");
+    public static final ResourceLocation AUREATE_SPARK = loc("aureate_spark");
+    public static final ResourceLocation MAZARINE_SPARK = loc("mazarine_spark");
 
     public static final ResourceLocation BASE_MECHANICAL_MANA_POOL_GUI = gui(LibNames.BASE_MECHANICAL_MANA_POOL);
     public static final ResourceLocation UPGRADED_MECHANICAL_MANA_POOL_GUI = gui(LibNames.UPGRADED_MECHANICAL_MANA_POOL);
