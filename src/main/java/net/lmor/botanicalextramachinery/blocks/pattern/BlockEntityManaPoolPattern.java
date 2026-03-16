@@ -32,6 +32,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import org.jetbrains.annotations.Nullable;
 import org.moddingx.libx.crafting.RecipeHelper;
+import net.lmor.botanicalextramachinery.util.RecipeValidityCache;
 import org.moddingx.libx.inventory.BaseItemStackHandler;
 import vazkii.botania.api.recipe.ManaInfusionRecipe;
 import vazkii.botania.client.fx.WispParticleData;
@@ -83,14 +84,14 @@ public class BlockEntityManaPoolPattern extends RecipeTile<ManaInfusionRecipe>
             inventory = BaseItemStackHandler.builder(LAST_OUTPUT_SLOT + 1)
                     .validator((stack) -> { return this.getCatalysts().contains(stack.getItem()); }, CATALYSTS_SLOT)
                     .validator((stack) -> { return stack.getItem() == ModItems.catalystManaInfinity.asItem();}, UPGRADE_SLOT)
-                    .validator((stack) -> { return this.level != null && RecipeHelper.isItemValidInput(this.level.getRecipeManager(), BotaniaRecipeTypes.MANA_INFUSION_TYPE, stack);}, Range.closedOpen(FIRST_INPUT_SLOT, LAST_INPUT_SLOT + 1))
+                    .validator((stack) -> { return this.level != null && RecipeValidityCache.isItemValidInput(this.level.getRecipeManager(), BotaniaRecipeTypes.MANA_INFUSION_TYPE, stack);}, Range.closedOpen(FIRST_INPUT_SLOT, LAST_INPUT_SLOT + 1))
                     .slotLimit(1, CATALYSTS_SLOT, UPGRADE_SLOT).output(Range.closedOpen(FIRST_OUTPUT_SLOT, LAST_OUTPUT_SLOT + 1)).contentsChanged(() -> {this.setChanged();this.setDispatchable();this.needsRecipeUpdate();})
                     .build();
 
         } else {
             inventory = BaseItemStackHandler.builder(LAST_OUTPUT_SLOT + 1)
                     .validator((stack) -> { return this.getCatalysts().contains(stack.getItem()); }, CATALYSTS_SLOT)
-                    .validator((stack) -> { return this.level != null && RecipeHelper.isItemValidInput(this.level.getRecipeManager(), BotaniaRecipeTypes.MANA_INFUSION_TYPE, stack);}, Range.closedOpen(FIRST_INPUT_SLOT, LAST_INPUT_SLOT + 1))
+                    .validator((stack) -> { return this.level != null && RecipeValidityCache.isItemValidInput(this.level.getRecipeManager(), BotaniaRecipeTypes.MANA_INFUSION_TYPE, stack);}, Range.closedOpen(FIRST_INPUT_SLOT, LAST_INPUT_SLOT + 1))
                     .slotLimit(1, CATALYSTS_SLOT).output(Range.closedOpen(FIRST_OUTPUT_SLOT, LAST_OUTPUT_SLOT + 1)).contentsChanged(() -> {this.setChanged();this.setDispatchable();this.needsRecipeUpdate();})
                     .build();
         }
@@ -159,6 +160,12 @@ public class BlockEntityManaPoolPattern extends RecipeTile<ManaInfusionRecipe>
     @Nonnull
     public BaseItemStackHandler getInventory() {
         return this.inventory;
+    }
+
+    @Override
+    protected java.util.function.BiPredicate<Integer, ItemStack> getInserts(Supplier<IItemHandlerModifiable> supplier) {
+        // Delegate to the centralized insert guard in ExtraBotanicalTile so the "pool full" check is respected.
+        return super.getInserts(supplier);
     }
 
     protected void updateRecipe(BiConsumer<ItemStack, Integer> usedStacks) {
@@ -289,15 +296,10 @@ public class BlockEntityManaPoolPattern extends RecipeTile<ManaInfusionRecipe>
                 return List.of();
             }
 
-            List<Item> catalysts = new ArrayList();
+            java.util.Set<Item> catalysts = new java.util.LinkedHashSet<>();
             this.level.getRecipeManager().getAllRecipesFor(BotaniaRecipeTypes.MANA_INFUSION_TYPE).forEach((recipe) -> {
                 if (recipe.getRecipeCatalyst() != null) {
-                    recipe.getRecipeCatalyst().getDisplayedStacks().stream().map(ItemStack::getItem).forEach((item) -> {
-                        if (!catalysts.contains(item)) {
-                            catalysts.add(item);
-                        }
-
-                    });
+                    recipe.getRecipeCatalyst().getDisplayedStacks().stream().map(ItemStack::getItem).forEach(catalysts::add);
                 }
 
             });

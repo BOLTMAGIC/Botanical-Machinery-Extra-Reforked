@@ -18,7 +18,8 @@ import org.moddingx.libx.menu.BlockEntityMenu;
 import javax.annotation.Nonnull;
 
 public class ContainerDaisyUpgraded extends BlockEntityMenu<BlockEntityDaisyUpgraded> {
-    private static final int SIZE_INVENTORY = 12;
+    // Force 8 inventory slots to match BlockEntity
+    private static final int SIZE_INVENTORY = 8;
     public final static int WIDTH_GUI = 196;
     public final static int HEIGHT_GUI = 124;
 
@@ -35,10 +36,6 @@ public class ContainerDaisyUpgraded extends BlockEntityMenu<BlockEntityDaisyUpgr
         this.addSlot(new SlotItemHandler(inventory, 5, 68, 76));
         this.addSlot(new SlotItemHandler(inventory, 6, 62, 54));
         this.addSlot(new SlotItemHandler(inventory, 7, 68, 32));
-        this.addSlot(new SlotItemHandler(inventory, 8, 44, 32));
-        this.addSlot(new SlotItemHandler(inventory, 9, 43, 76));
-        this.addSlot(new SlotItemHandler(inventory, 10, 136, 32));
-        this.addSlot(new SlotItemHandler(inventory, 11, 136, 76));
 
         int[] x_y = ScreenAddInventory.getCoordInventorySlot(ScreenInventory.UPGRADE, WIDTH_GUI, HEIGHT_GUI);
         this.layoutPlayerInventorySlots(x_y[0], x_y[1]);
@@ -47,7 +44,7 @@ public class ContainerDaisyUpgraded extends BlockEntityMenu<BlockEntityDaisyUpgr
     @Nonnull
     public ItemStack quickMoveStack(@Nonnull Player player, int index) {
         ItemStack itemstack = ItemStack.EMPTY;
-        Slot slot = (Slot)this.slots.get(index);
+        Slot slot = this.slots.get(index);
         if (slot.hasItem()) {
             ItemStack stack = slot.getItem();
             itemstack = stack.copy();

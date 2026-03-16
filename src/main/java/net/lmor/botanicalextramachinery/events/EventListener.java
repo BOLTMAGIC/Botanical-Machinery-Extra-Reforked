@@ -7,11 +7,14 @@ import net.lmor.botanicalextramachinery.blocks.tiles.mechanicalManaPool.BlockEnt
 import net.lmor.botanicalextramachinery.blocks.tiles.mechanicalManaPool.BlockEntityManaPoolBase;
 import net.lmor.botanicalextramachinery.blocks.tiles.mechanicalManaPool.BlockEntityManaPoolUltimate;
 import net.lmor.botanicalextramachinery.blocks.tiles.mechanicalManaPool.BlockEntityManaPoolUpgraded;
+import vazkii.botania.common.block.BotaniaFlowerBlocks;
 import net.minecraftforge.event.OnDatapackSyncEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
-import vazkii.botania.common.block.BotaniaFlowerBlocks;
+import net.lmor.botanicalextramachinery.blocks.pattern.BlockEntityOrechidPattern;
+import net.lmor.botanicalextramachinery.blocks.pattern.BlockEntityDaisyPattern;
+import net.lmor.botanicalextramachinery.util.RecipeValidityCache;
 
 @Mod.EventBusSubscriber(modid = ExtraMachinery.MOD_ID)
 public class EventListener {
@@ -24,6 +27,9 @@ public class EventListener {
         BlockEntityManaPoolUpgraded.invalidateCatalysts();
         BlockEntityManaPoolAdvanced.invalidateCatalysts();
         BlockEntityManaPoolUltimate.invalidateCatalysts();
+        RecipeValidityCache.invalidateAll();
+        BlockEntityOrechidPattern.invalidateOrechidCaches();
+        BlockEntityDaisyPattern.invalidatePureDaisyCache();
     }
 
     @SubscribeEvent
@@ -58,5 +64,13 @@ public class EventListener {
             }
         }
 
+                if (val instanceof net.minecraft.world.level.block.Block) {
+                    net.minecraft.world.level.block.Block block = (net.minecraft.world.level.block.Block) val;
+                    GenFlowers.addAllGenFlowers(block.asItem(), new WitherAconite());
+                }
+            } catch (Throwable t) {
+                // ignore: if reflection fails, skip adding the flower
+            }
+        }
     }
 }

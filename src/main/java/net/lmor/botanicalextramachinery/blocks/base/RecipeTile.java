@@ -31,6 +31,11 @@ public abstract class RecipeTile<T extends Recipe<Container>> extends ExtraBotan
     private boolean needsRecipeUpdate;
     private final int countCraft;
     private int countCraftPerRecipe;
+    /**
+     * Transient cache for simple ingredient item arrays for the currently selected recipe.
+     * If an entry is null, the corresponding Ingredient is not simple and Ingredient.test() must be used.
+     */
+    private transient List<Item[]> cachedIngredientItems = null;
 
 
     public RecipeTile(BlockEntityType<?> blockEntityType, RecipeType<T> recipeType, BlockPos pos, BlockState state, int manaCap, int firstInputSlot, int firstOutputSlot, int countCraft) {
@@ -95,10 +100,33 @@ public abstract class RecipeTile<T extends Recipe<Container>> extends ExtraBotan
                     recipe = (Recipe)iterator.next();
                 } while(!this.matchRecipe((T) recipe, stacks));
 
-                List<ItemStack> consumedStacks = new ArrayList();
-                Iterator iteratorRecipe = recipe.getIngredients().iterator();
+                // Build a simple per-ingredient item array cache for fast matching when possible
+                List<Ingredient> ingredients = recipe.getIngredients();
+                int nIngredients = ingredients.size();
+                this.cachedIngredientItems = new ArrayList<>(nIngredients);
+                for (int ingIdx = 0; ingIdx < nIngredients; ingIdx++) {
+                    Ingredient ing = ingredients.get(ingIdx);
+                    ItemStack[] items = ing.getItems();
+                    if (items == null || items.length == 0) {
+                        this.cachedIngredientItems.add(null);
+                        continue;
+                    }
+                    boolean simple = true;
+                    Item[] arr = new Item[items.length];
+                    for (int i = 0; i < items.length; i++) {
+                        ItemStack is = items[i];
+                        if (is == null || is.hasTag()) {
+                            simple = false;
+                            break;
+                        }
+                        arr[i] = is.getItem().asItem();
+                    }
+                    this.cachedIngredientItems.add(simple ? arr : null);
+                }
 
-                this.countCraftPerRecipe = maxCountCraft(iteratorRecipe, stacks);
+                List<ItemStack> consumedStacks = new ArrayList<>();
+
+                this.countCraftPerRecipe = maxCountCraft(recipe.getIngredients().iterator(), stacks);
 
                 if (recipe.getResultItem(this.level.registryAccess()).getCount() != 0){
                     int remainingItemsToPlace;
@@ -135,27 +163,24 @@ public abstract class RecipeTile<T extends Recipe<Container>> extends ExtraBotan
                     }
                 }
 
-                if (recipe.getType() == BotaniaRecipeTypes.RUNE_TYPE){
+                if (recipe.getType() == BotaniaRecipeTypes.RUNE_TYPE) {
+                    // collect all ingredient items and check for runes
                     List<ItemStack> inputItemRes = new ArrayList<>();
-                    iteratorRecipe = recipe.getIngredients().iterator();
-                    while (iteratorRecipe.hasNext()){
-                        Ingredient ingredient = (Ingredient)iteratorRecipe.next();
-
-                        for (ItemStack itemStack: Arrays.stream(ingredient.getItems()).toList()){
+                    for (int ingIdx = 0; ingIdx < nIngredients; ingIdx++) {
+                        Ingredient ingredient = ingredients.get(ingIdx);
+                        for (ItemStack itemStack : Arrays.stream(ingredient.getItems()).toList()) {
                             inputItemRes.add(itemStack);
                         }
                     }
 
-                    List res = Streams.concat(new Stream[]
-                        {
+                    List<ItemStack> res = Streams.concat(new Stream[]{
                             inputItemRes.stream()
-                                .filter((s) -> {return s.is(BotaniaTags.Items.RUNES);})
-                                .map(ItemStack::copy)
-                        }).toList();
+                                    .filter(s -> s.is(BotaniaTags.Items.RUNES))
+                                    .map(ItemStack::copy)
+                    }).toList();
 
-                    if (res.size() != 0){
+                    if (!res.isEmpty()){
                         int emptySlot = 0;
-
                         for (int slot = this.firstOutputSlot; slot < inventory.getSlots(); ++slot) {
                             ItemStack slotItem = inventory.getStackInSlot(slot);
                             if (slotItem.isEmpty()){
@@ -169,33 +194,42 @@ public abstract class RecipeTile<T extends Recipe<Container>> extends ExtraBotan
                     }
                 }
 
-                while(true) {
-                    while(iteratorRecipe.hasNext()) {
-                        Ingredient ingredient = (Ingredient)iteratorRecipe.next();
+                // Match ingredients using index-based loops and the cachedIngredientItems fast-path
+                for (int ingIdx = 0; ingIdx < nIngredients; ingIdx++) {
+                    Ingredient ingredient = ingredients.get(ingIdx);
+                    Item[] simple = this.cachedIngredientItems.get(ingIdx);
 
-                        for(int stackIdx = 0; stackIdx < stacks.size(); ++stackIdx) {
-                            if (ingredient.test((ItemStack)stacks.get(stackIdx))) {
-                                ItemStack theStack = ((ItemStack)stacks.get(stackIdx)).copy();
-
-
-                                theStack.setCount(this.countCraftPerRecipe);
-                                consumedStacks.add(theStack.copy());
-                                usedStacks.accept(theStack, this.firstInputSlot + stackIdx);
-                                break;
+                    for (int stackIdx = 0; stackIdx < stacks.size(); ++stackIdx) {
+                        ItemStack candidate = stacks.get(stackIdx);
+                        boolean matched = false;
+                        if (simple != null) {
+                            Item it = candidate.getItem().asItem();
+                            for (Item si : simple) {
+                                if (si == it) { matched = true; break; }
                             }
+                        } else {
+                            if (ingredient.test(candidate)) matched = true;
+                        }
+
+                        if (matched) {
+                            ItemStack theStack = stacks.get(stackIdx).copy();
+                            theStack.setCount(this.countCraftPerRecipe);
+                            consumedStacks.add(theStack.copy());
+                            usedStacks.accept(theStack, this.firstInputSlot + stackIdx);
+                            break;
                         }
                     }
-
-                    List<ItemStack> resultItems = this.resultItems((T) recipe, consumedStacks);
-
-                    if (!resultItems.isEmpty() && !inventory.hasSpaceFor(resultItems, this.firstOutputSlot, inventory.getSlots())) {
-                        this.recipe = null;
-                    } else {
-                        this.recipe = (T) recipe;
-                    }
-
-                    return;
                 }
+
+                List<ItemStack> resultItems = this.resultItems((T) recipe, consumedStacks);
+
+                if (!resultItems.isEmpty() && !inventory.hasSpaceFor(resultItems, this.firstOutputSlot, inventory.getSlots())) {
+                    this.recipe = null;
+                } else {
+                    this.recipe = (T) recipe;
+                }
+
+                return;
             }
         }
     }
@@ -255,59 +289,74 @@ public abstract class RecipeTile<T extends Recipe<Container>> extends ExtraBotan
             if (this.recipe != null) {
                 IAdvancedItemHandlerModifiable inventory = this.getInventory().getUnrestricted();
                 List<ItemStack> consumedStacks = new ArrayList<>();
-                Iterator iterator = this.recipe.getIngredients().iterator();
-                Iterator iteratorTest = this.recipe.getIngredients().iterator();
 
-                while(true) {
-                    int countItemCraft = 0;
+                List<Ingredient> ingredients = this.recipe.getIngredients();
+                int nIngredients = ingredients.size();
 
-                    while(iteratorTest.hasNext()) {
-                        Ingredient ingredient = (Ingredient)iteratorTest.next();
-                        for(int slot = this.firstInputSlot; slot < this.firstOutputSlot; ++slot) {
-                            if (ingredient.test(inventory.getStackInSlot(slot))) {
-                                int cc = inventory.getStackInSlot(slot).getCount();
-                                if (countItemCraft == 0){
-                                    countItemCraft = Math.min(this.countCraftPerRecipe, cc);
-                                } else {
-                                    countItemCraft = Math.min(countItemCraft, cc);
-                                }
-                                break;
+                // determine how many items can be crafted at once (countItemCraft)
+                int countItemCraft = 0;
+                for (int ingIdx = 0; ingIdx < nIngredients; ingIdx++) {
+                    Ingredient ingredient = ingredients.get(ingIdx);
+                    Item[] simple = this.cachedIngredientItems == null ? null : this.cachedIngredientItems.get(ingIdx);
+                    for (int slot = this.firstInputSlot; slot < this.firstOutputSlot; ++slot) {
+                        ItemStack cand = inventory.getStackInSlot(slot);
+                        boolean matched = false;
+                        if (simple != null) {
+                            Item it = cand.getItem().asItem();
+                            for (Item si : simple) { if (si == it) { matched = true; break; } }
+                        } else {
+                            if (ingredient.test(cand)) matched = true;
+                        }
+                        if (matched) {
+                            int cc = cand.getCount();
+                            if (countItemCraft == 0) {
+                                countItemCraft = Math.min(this.countCraftPerRecipe, cc);
+                            } else {
+                                countItemCraft = Math.min(countItemCraft, cc);
                             }
+                            break;
                         }
                     }
-
-                    while(iterator.hasNext()) {
-                        Ingredient ingredient = (Ingredient)iterator.next();
-                        for(int slot = this.firstInputSlot; slot < this.firstOutputSlot; ++slot) {
-                            if (ingredient.test(inventory.getStackInSlot(slot))) {
-                                ItemStack extracted = inventory.extractItem(slot, countItemCraft, false);
-                                if (!extracted.isEmpty()) {
-                                    consumedStacks.add(extracted);
-                                    usedStacks.accept(extracted, slot);
-                                }
-                                break;
-                            }
-                        }
-                    }
-
-                    iterator = this.resultItems(this.recipe, consumedStacks).iterator();
-
-                    while(iterator.hasNext()) {
-                        ItemStack result = (ItemStack)iterator.next();
-
-                        result.setCount(result.getCount() * countItemCraft);
-
-                        this.putIntoOutputOrDrop(result.copy());
-                    }
-
-                    this.onCrafted(this.recipe, countItemCraft);
-
-                    this.recipe = null;
-                    this.needsRecipeUpdate();
-                    this.countCraftPerRecipe = this.countCraft;
-
-                    break;
                 }
+
+                // extract required items for each ingredient
+                for (int ingIdx = 0; ingIdx < nIngredients; ingIdx++) {
+                    Ingredient ingredient = ingredients.get(ingIdx);
+                    Item[] simple = this.cachedIngredientItems == null ? null : this.cachedIngredientItems.get(ingIdx);
+                    for (int slot = this.firstInputSlot; slot < this.firstOutputSlot; ++slot) {
+                        ItemStack cand = inventory.getStackInSlot(slot);
+                        boolean matched = false;
+                        if (simple != null) {
+                            Item it = cand.getItem().asItem();
+                            for (Item si : simple) { if (si == it) { matched = true; break; } }
+                        } else {
+                            if (ingredient.test(cand)) matched = true;
+                        }
+                        if (matched) {
+                            ItemStack extracted = inventory.extractItem(slot, countItemCraft, false);
+                            if (!extracted.isEmpty()) {
+                                consumedStacks.add(extracted);
+                                usedStacks.accept(extracted, slot);
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                // produce results
+                List<ItemStack> results = this.resultItems(this.recipe, consumedStacks);
+                for (ItemStack result : results) {
+                    result.setCount(result.getCount() * countItemCraft);
+                    this.putIntoOutputOrDrop(result.copy());
+                }
+
+                this.onCrafted(this.recipe, countItemCraft);
+
+                this.recipe = null;
+                this.needsRecipeUpdate();
+                this.countCraftPerRecipe = this.countCraft;
+                
+                return;
             }
 
         }

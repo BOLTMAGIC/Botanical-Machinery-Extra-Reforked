@@ -25,6 +25,8 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import vazkii.botania.api.BotaniaAPI;
@@ -49,7 +51,10 @@ import vazkii.botania.xplat.XplatAbstractions;
 
 import java.util.*;
 
+@SuppressWarnings("resource")
 public class EntityManaSparkPattern extends SparkBaseEntity implements ManaSpark {
+
+    private static final Logger LOGGER = LogManager.getLogger();
 
     protected int TRANSFER_RATE = 1000;
     private static final String TAG_UPGRADE = "upgrade";
@@ -92,67 +97,74 @@ public class EntityManaSparkPattern extends SparkBaseEntity implements ManaSpark
                 ManaReceiver receiver = this.getAttachedManaReceiver();
                 SparkUpgradeType upgrade = this.getUpgrade();
                 Collection<ManaSpark> transfers = this.getOutgoingTransfers();
+
                 switch (upgrade) {
                     case DISPERSIVE -> {
-                        AABB aabb = VecHelper.boxForRange(this.position().with(Direction.Axis.Y, this.getY() + (double) this.getBbHeight() / 2.0), 12.0);
-                        List<Player> players = this.level().getEntitiesOfClass(Player.class, aabb, EntitySelector.ENTITY_STILL_ALIVE);
-                        Map<Player, Map<ManaItem, Integer>> receivingPlayers = new HashMap<>();
-                        ItemStack input = new ItemStack(this.getSparkItem());
-                        Iterator<Player> iterator = players.iterator();
-                        Player player;
-                        while (iterator.hasNext()) {
-                            player = iterator.next();
-                            List<ItemStack> stacks = new ArrayList<>();
-                            stacks.addAll(player.getInventory().items);
-                            stacks.addAll(player.getInventory().armor);
-                            Container inv = BotaniaAPI.instance().getAccessoriesInventory(player);
+                        // Dispersive distributes mana to player-held items. If there's no receiver
+                        // (e.g. the attached tile doesn't provide a ManaReceiver any more), skip.
+                        if (receiver != null) {
+                            AABB aabb = VecHelper.boxForRange(this.position().with(Direction.Axis.Y, this.getY() + (double) this.getBbHeight() / 2.0), 12.0);
+                            List<Player> players = this.level().getEntitiesOfClass(Player.class, aabb, EntitySelector.ENTITY_STILL_ALIVE);
+                            Map<Player, Map<ManaItem, Integer>> receivingPlayers = new HashMap<>();
+                            ItemStack input = new ItemStack(this.getSparkItem());
+                            Iterator<Player> iterator = players.iterator();
+                            Player player;
+                            while (iterator.hasNext()) {
+                                player = iterator.next();
+                                List<ItemStack> stacks = new ArrayList<>();
+                                stacks.addAll(player.getInventory().items);
+                                stacks.addAll(player.getInventory().armor);
+                                Container inv = BotaniaAPI.instance().getAccessoriesInventory(player);
 
-                            for (int i = 0; i < inv.getContainerSize(); ++i) {
-                                stacks.add(inv.getItem(i));
-                            }
+                                for (int i = 0; i < inv.getContainerSize(); ++i) {
+                                    stacks.add(inv.getItem(i));
+                                }
 
-                            for (ItemStack stack : stacks) {
-                                ManaItem manaItem = XplatAbstractions.INSTANCE.findManaItem(stack);
-                                if (!stack.isEmpty() && manaItem != null && manaItem.canReceiveManaFromItem(input)) {
-                                    boolean add = false;
-                                    Map<ManaItem, Integer> receivingStacks;
-                                    if (!receivingPlayers.containsKey(player)) {
-                                        add = true;
-                                        receivingStacks = new HashMap<>();
-                                    } else {
-                                        receivingStacks = receivingPlayers.get(player);
-                                    }
+                                for (ItemStack stack : stacks) {
+                                    ManaItem manaItem = XplatAbstractions.INSTANCE.findManaItem(stack);
+                                    if (!stack.isEmpty() && manaItem != null && manaItem.canReceiveManaFromItem(input)) {
+                                        boolean add = false;
+                                        Map<ManaItem, Integer> receivingStacks;
+                                        if (!receivingPlayers.containsKey(player)) {
+                                            add = true;
+                                            receivingStacks = new HashMap<>();
+                                        } else {
+                                            receivingStacks = receivingPlayers.get(player);
+                                        }
 
-                                    assert receiver != null;
-                                    int recv = Math.min(receiver.getCurrentMana(), Math.min(TRANSFER_RATE, manaItem.getMaxMana() - manaItem.getMana()));
-                                    if (recv > 0) {
-                                        receivingStacks.put(manaItem, recv);
-                                        if (add) {
-                                            receivingPlayers.put(player, receivingStacks);
+                                        int recv = Math.min(receiver.getCurrentMana(), Math.min(TRANSFER_RATE, manaItem.getMaxMana() - manaItem.getMana()));
+                                        if (recv > 0) {
+                                            receivingStacks.put(manaItem, recv);
+                                            if (add) {
+                                                receivingPlayers.put(player, receivingStacks);
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
-                        if (!receivingPlayers.isEmpty()) {
-                            List<Player> keys = new ArrayList<>(receivingPlayers.keySet());
-                            Collections.shuffle(keys);
-                            player = keys.iterator().next();
-                            Map<ManaItem, Integer> items = receivingPlayers.get(player);
-                            Map.Entry<ManaItem, Integer> e = items.entrySet().iterator().next();
-                            ManaItem manaItem = e.getKey();
-                            int cost = e.getValue();
-                            int manaToPut = Math.min(receiver.getCurrentMana(), cost);
-                            manaItem.addMana(manaToPut);
-                            receiver.receiveMana(-manaToPut);
-                            this.particlesTowards(player);
+                            if (!receivingPlayers.isEmpty()) {
+                                List<Player> keys = new ArrayList<>(receivingPlayers.keySet());
+                                Collections.shuffle(keys);
+                                player = keys.iterator().next();
+                                Map<ManaItem, Integer> items = receivingPlayers.get(player);
+                                Map.Entry<ManaItem, Integer> e = items.entrySet().iterator().next();
+                                ManaItem manaItem = e.getKey();
+                                int cost = e.getValue();
+                                int manaToPut = Math.min(receiver.getCurrentMana(), cost);
+                                manaItem.addMana(manaToPut);
+                                receiver.receiveMana(-manaToPut);
+                                this.particlesTowards(player);
+                            }
                         }
                     }
                     case DOMINANT -> {
+                        // If receiver was full before and now isn't, update transfers. Only do this when
+                        // a receiver exists.
                         if (this.receiverWasFull) {
-                            assert receiver != null;
-                            if (!receiver.isFull()) {
-                                this.updateTransfers();
+                            if (receiver != null) {
+                                if (!receiver.isFull()) {
+                                    this.updateTransfers();
+                                }
                             }
                         }
                         if (!this.transfersTowardsSelfToRegister.isEmpty()) {
@@ -161,23 +173,34 @@ public class EntityManaSparkPattern extends SparkBaseEntity implements ManaSpark
                     }
                     default -> {
                         if (this.receiverWasFull) {
-                            assert receiver != null;
-                            if (!receiver.isFull()) {
-                                this.notifyOthers(this.getNetwork());
+                            if (receiver != null) {
+                                if (!receiver.isFull()) {
+                                    this.notifyOthers(this.getNetwork());
+                                }
                             }
                         }
                     }
                 }
 
+                // Track whether receiver is full for next tick. Treat missing receiver as "full" to avoid
+                // spurious attempts to drain from a missing target.
                 if (receiver != null) {
                     this.receiverWasFull = receiver.isFull();
                 } else {
                     this.receiverWasFull = true;
                 }
 
-                if (!transfers.isEmpty()) {
-                    assert receiver != null;
+                // Transfers to other sparks: only attempt if we have a valid receiver to take mana from.
+                if (!transfers.isEmpty() && receiver != null) {
+                    if (LOGGER.isDebugEnabled()) {
+                        StringBuilder sb = new StringBuilder();
+                        for (ManaSpark s : transfers) sb.append(s.entity().getId()).append(',');
+                        LOGGER.debug("Spark {} outgoing transfers IDs: {}", this.getId(), sb.toString());
+                    }
                     int manaTotal = Math.min(TRANSFER_RATE * transfers.size(), receiver.getCurrentMana());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("Spark {} at {}: transfers.size={} receiverCurrentMana={} manaTotal={}", this.getId(), this.getAttachPos(), transfers.size(), receiver.getCurrentMana(), manaTotal);
+                    }
                     int count = transfers.size();
                     int manaSpent = 0;
                     if (manaTotal > 0) {
@@ -190,7 +213,22 @@ public class EntityManaSparkPattern extends SparkBaseEntity implements ManaSpark
                             --count;
                             SparkAttachable attached = spark.getAttachedTile();
                             ManaReceiver attachedReceiver = spark.getAttachedManaReceiver();
-                            if (attached != null && attachedReceiver != null && !attachedReceiver.isFull() && !spark.areIncomingTransfersDone() && (!(receiver instanceof ExtraBotanicalTile) || receiver instanceof BlockEntityGreenhouse) && !(attachedReceiver instanceof BlockEntityGreenhouse)) {
+                            boolean skip = false;
+                            if (attached == null) {
+                                skip = true;
+                                if (LOGGER.isDebugEnabled()) LOGGER.debug("Skipping spark {}: attached is null", spark.entity().getId());
+                            } else if (attachedReceiver == null) {
+                                skip = true;
+                                if (LOGGER.isDebugEnabled()) LOGGER.debug("Skipping spark {}: attachedReceiver is null", spark.entity().getId());
+                            } else if (attachedReceiver.isFull()) {
+                                skip = true;
+                                if (LOGGER.isDebugEnabled()) LOGGER.debug("Skipping spark {}: attachedReceiver is full", spark.entity().getId());
+                            } else if (spark.areIncomingTransfersDone()) {
+                                skip = true;
+                                if (LOGGER.isDebugEnabled()) LOGGER.debug("Skipping spark {}: incoming transfers done", spark.entity().getId());
+                            }
+
+                            if (!skip && (!(receiver instanceof ExtraBotanicalTile) || receiver instanceof BlockEntityGreenhouse) && !(attachedReceiver instanceof BlockEntityGreenhouse)) {
                                 int spend = Math.min(attached.getAvailableSpaceForMana(), (manaTotal - manaSpent) / (count + 1));
                                 attachedReceiver.receiveMana(spend);
                                 manaSpent += spend;
@@ -224,6 +262,7 @@ public class EntityManaSparkPattern extends SparkBaseEntity implements ManaSpark
                     otherUpgrade = otherSpark.getUpgrade();
                     if (otherSpark != this && otherUpgrade == SparkUpgradeType.NONE && otherSpark.getAttachedManaReceiver() instanceof ManaPool) {
                         this.transfersTowardsSelfToRegister.add(otherSpark);
+                        if (LOGGER.isDebugEnabled()) LOGGER.debug("Dominant spark {} found potential donor spark {}", this.getId(), otherSpark.entity().getId());
                     }
                 }
                 Collections.shuffle(this.transfersTowardsSelfToRegister);
@@ -237,6 +276,7 @@ public class EntityManaSparkPattern extends SparkBaseEntity implements ManaSpark
                     otherUpgrade = otherSpark.getUpgrade();
                     if (otherSpark != this && otherUpgrade != SparkUpgradeType.DOMINANT && otherUpgrade != SparkUpgradeType.RECESSIVE && otherUpgrade != SparkUpgradeType.ISOLATED) {
                         this.outgoingTransfers.add(otherSpark);
+                        if (LOGGER.isDebugEnabled()) LOGGER.debug("Recessive/base spark {} added outgoing transfer target {}", this.getId(), otherSpark.entity().getId());
                     }
                 }
             }
@@ -358,23 +398,30 @@ public class EntityManaSparkPattern extends SparkBaseEntity implements ManaSpark
     private void filterTransfers() {
         Iterator<ManaSpark> iter = this.outgoingTransfers.iterator();
 
-        while(true) {
-            ManaSpark spark;
-            SparkUpgradeType upgr;
-            SparkUpgradeType supgr;
-            ManaReceiver arecv;
-            do {
-                if (!iter.hasNext()) {
-                    return;
+        while (iter.hasNext()) {
+            ManaSpark spark = iter.next();
+            try {
+                SparkUpgradeType upgr = this.getUpgrade();
+                SparkUpgradeType supgr = spark.getUpgrade();
+                ManaReceiver arecv = spark.getAttachedManaReceiver();
+
+                boolean good = spark != this
+                        && ((Entity) spark).isAlive()
+                        && !spark.areIncomingTransfersDone()
+                        && this.getNetwork() == spark.getNetwork()
+                        && arecv != null
+                        && !arecv.isFull()
+                        && (upgr == SparkUpgradeType.NONE && supgr == SparkUpgradeType.DOMINANT
+                        || upgr == SparkUpgradeType.RECESSIVE && (supgr == SparkUpgradeType.NONE || supgr == SparkUpgradeType.DISPERSIVE)
+                        || !(arecv instanceof ManaPool));
+
+                if (!good) {
+                    iter.remove();
+                    if (LOGGER.isDebugEnabled()) LOGGER.debug("Spark {} removed from outgoingTransfers, reason: {}", spark.entity().getId(), good);
                 }
-
-                spark = iter.next();
-                upgr = this.getUpgrade();
-                supgr = spark.getUpgrade();
-                arecv = spark.getAttachedManaReceiver();
-            } while(spark != this && ((Entity)spark).isAlive() && !spark.areIncomingTransfersDone() && this.getNetwork() == spark.getNetwork() && arecv != null && !arecv.isFull() && (upgr == SparkUpgradeType.NONE && supgr == SparkUpgradeType.DOMINANT || upgr == SparkUpgradeType.RECESSIVE && (supgr == SparkUpgradeType.NONE || supgr == SparkUpgradeType.DISPERSIVE) || !(arecv instanceof ManaPool)));
-
-            iter.remove();
+            } catch (Exception ex) {
+                iter.remove();
+            }
         }
     }
 
@@ -389,6 +436,7 @@ public class EntityManaSparkPattern extends SparkBaseEntity implements ManaSpark
     public void registerTransfer(ManaSpark entity) {
         if (!this.hasTransfer(entity)) {
             this.outgoingTransfers.add(entity);
+            if (LOGGER.isDebugEnabled()) LOGGER.debug("Spark {} registered transfer to {}", this.getId(), entity.entity().getId());
             this.filterTransfers();
         }
     }

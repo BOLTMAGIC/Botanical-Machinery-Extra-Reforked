@@ -48,6 +48,27 @@ import javax.annotation.Nonnull;
 
 @JeiPlugin
 public class jei implements IModPlugin {
+    // Cached infusionType to avoid repeated Class.forName calls and to prevent accidental
+    // linkage errors when MythicBotany is absent.
+    private static mezz.jei.api.recipe.RecipeType<?> cachedInfusionType = null;
+
+    private static mezz.jei.api.recipe.RecipeType<?> getInfusionTypeSafe() {
+        if (cachedInfusionType != null) return cachedInfusionType;
+        if (!ModList.get().isLoaded("mythicbotany")) return null;
+        try {
+            Class<?> infusionClass = Class.forName("mythicbotany.jei.InfusionCategory");
+            java.lang.reflect.Field typeField = infusionClass.getField("TYPE");
+            Object t = typeField.get(null);
+            if (t instanceof mezz.jei.api.recipe.RecipeType) {
+                cachedInfusionType = (mezz.jei.api.recipe.RecipeType<?>) t;
+                return cachedInfusionType;
+            }
+        } catch (Throwable e) {
+            // If reflection fails, just return null — JEI integration will be skipped.
+        }
+        return null;
+    }
+
     public jei() {
     }
 

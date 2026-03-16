@@ -213,6 +213,19 @@ public class BlockEntityJadedAmaranthus extends ExtraBotanicalTile implements II
         }
     }
 
+    @Override
+    protected Predicate<Integer> getExtracts(Supplier<IItemHandlerModifiable> supplier) {
+        return (slot) -> {
+            return slot >= FIRST_OUTPUT_SLOT && slot <= LAST_OUTPUT_SLOT;
+        };
+    }
+
+    @NotNull
+    @Override
+    public BaseItemStackHandler getInventory() {
+        return this.inventory;
+    }
+
     @NotNull
     @Override
     public CompoundTag getUpdateTag() {
@@ -226,19 +239,6 @@ public class BlockEntityJadedAmaranthus extends ExtraBotanicalTile implements II
 
             return nbt;
         }
-    }
-
-    @Override
-    protected Predicate<Integer> getExtracts(Supplier<IItemHandlerModifiable> supplier) {
-        return (slot) -> {
-            return slot >= FIRST_OUTPUT_SLOT && slot <= LAST_OUTPUT_SLOT;
-        };
-    }
-
-    @NotNull
-    @Override
-    public BaseItemStackHandler getInventory() {
-        return this.inventory;
     }
 
     @Override

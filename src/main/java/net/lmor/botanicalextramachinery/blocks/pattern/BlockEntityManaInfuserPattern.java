@@ -12,8 +12,6 @@ import appeng.hooks.ticking.TickHandler;
 import appeng.me.helpers.BlockEntityNodeListener;
 import appeng.me.helpers.IGridConnectedBlockEntity;
 import com.google.common.collect.Range;
-import mythicbotany.infuser.InfuserRecipe;
-import mythicbotany.register.ModRecipes;
 import net.lmor.botanicalextramachinery.ModBlocks;
 import net.lmor.botanicalextramachinery.ModItems;
 import net.lmor.botanicalextramachinery.blocks.base.WorkingTile;
@@ -35,14 +33,14 @@ import net.minecraftforge.items.IItemHandlerModifiable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.moddingx.libx.crafting.RecipeHelper;
+import net.lmor.botanicalextramachinery.util.RecipeValidityCache;
 import org.moddingx.libx.inventory.BaseItemStackHandler;
-import vazkii.botania.common.crafting.BotaniaRecipeTypes;
 
 import javax.annotation.Nonnull;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-public class BlockEntityManaInfuserPattern extends WorkingTile<InfuserRecipe>
+public class BlockEntityManaInfuserPattern extends WorkingTile<net.minecraft.world.item.crafting.Recipe<net.minecraft.world.Container>>
         implements IInWorldGridNodeHost, IGridConnectedBlockEntity {
     public static final int MAX_MANA_PER_TICK = LibXServerConfig.ManaInfuserSettings.workingDuration;
 
@@ -63,7 +61,8 @@ public class BlockEntityManaInfuserPattern extends WorkingTile<InfuserRecipe>
     private boolean isInfinityMana = false;
 
     public BlockEntityManaInfuserPattern(BlockEntityType<?> type, BlockPos pos, BlockState state, int manaCapacity, int countCraft, int[] slots, SettingPattern settingPattern) {
-        super(type, ModRecipes.infuser, pos, state, manaCapacity, slots[0], slots[2], countCraft);
+        // Call super first. Use Botania's MANA_INFUSION_TYPE as a safe default for construction.
+        super(type, (net.minecraft.world.item.crafting.RecipeType) vazkii.botania.common.crafting.BotaniaRecipeTypes.MANA_INFUSION_TYPE, pos, state, manaCapacity, slots[0], slots[2], countCraft);
 
         FIRST_INPUT_SLOT = slots[0];
         LAST_INPUT_SLOT = slots[1];
@@ -77,9 +76,25 @@ public class BlockEntityManaInfuserPattern extends WorkingTile<InfuserRecipe>
 
         this.settingPattern = settingPattern;
 
+        // Try to obtain the MythicBotany infuser RecipeType via reflection. If not available, fall back
+        // to Botania's infusion type. We do this after calling super because super must be the first
+        // statement in the constructor.
+        net.minecraft.world.item.crafting.RecipeType<?> infuserType = vazkii.botania.common.crafting.BotaniaRecipeTypes.MANA_INFUSION_TYPE;
+        try {
+            Class<?> modRecipes = Class.forName("mythicbotany.register.ModRecipes");
+            java.lang.reflect.Field field = modRecipes.getField("infuser");
+            Object val = field.get(null);
+            if (val instanceof net.minecraft.world.item.crafting.RecipeType) {
+                infuserType = (net.minecraft.world.item.crafting.RecipeType<?>) val;
+            }
+        } catch (Throwable ignored) {
+        }
+
+        final net.minecraft.world.item.crafting.RecipeType<?> finalInfuserType = infuserType;
+
         if (UPGRADE_SLOT_1 != -1 && UPGRADE_SLOT_2 != -1){
             this.inventory = BaseItemStackHandler.builder(LAST_OUTPUT_SLOT + 1)
-                    .validator((stack) -> { return this.level != null && RecipeHelper.isItemValidInput(this.level.getRecipeManager(), ModRecipes.infuser, stack);}, Range.closedOpen(FIRST_INPUT_SLOT, LAST_INPUT_SLOT + 1))
+                    .validator((stack) -> this.level != null && RecipeValidityCache.isItemValidInput(this.level.getRecipeManager(), (net.minecraft.world.item.crafting.RecipeType) finalInfuserType, stack), Range.closedOpen(FIRST_INPUT_SLOT, LAST_INPUT_SLOT + 1))
                     .validator((stack) -> {return (stack.getItem() == ModItems.catalystSpeed.asItem() || stack.getItem() == ModItems.catalystManaInfinity.asItem());}, UPGRADE_SLOT_1, UPGRADE_SLOT_2)
                     .output(Range.closedOpen(FIRST_OUTPUT_SLOT, LAST_OUTPUT_SLOT + 1))
                     .slotLimit(1, UPGRADE_SLOT_1, UPGRADE_SLOT_2)
@@ -88,7 +103,7 @@ public class BlockEntityManaInfuserPattern extends WorkingTile<InfuserRecipe>
         }
         else {
             this.inventory = BaseItemStackHandler.builder(LAST_OUTPUT_SLOT + 1)
-                    .validator((stack) -> { return this.level != null && RecipeHelper.isItemValidInput(this.level.getRecipeManager(), ModRecipes.infuser, stack);}, Range.closedOpen(FIRST_INPUT_SLOT, LAST_INPUT_SLOT + 1))
+                    .validator((stack) -> this.level != null && RecipeValidityCache.isItemValidInput(this.level.getRecipeManager(), (net.minecraft.world.item.crafting.RecipeType) finalInfuserType, stack), Range.closedOpen(FIRST_INPUT_SLOT, LAST_INPUT_SLOT + 1))
                     .output(Range.closedOpen(FIRST_OUTPUT_SLOT, LAST_OUTPUT_SLOT + 1))
                     .contentsChanged(() -> { this.setChanged();this.setDispatchable();this.needsRecipeUpdate();})
                     .build();
@@ -162,8 +177,16 @@ public class BlockEntityManaInfuserPattern extends WorkingTile<InfuserRecipe>
         return this.inventory;
     }
 
-    protected int getMaxProgress(InfuserRecipe recipe) {
-        return recipe.getManaUsage();
+    protected int getMaxProgress(net.minecraft.world.item.crafting.Recipe<net.minecraft.world.Container> recipe) {
+        // Try to call InfuserRecipe.getManaUsage() via reflection if available
+        try {
+            java.lang.reflect.Method m = recipe.getClass().getMethod("getManaUsage");
+            Object val = m.invoke(recipe);
+            if (val instanceof Integer) return (Integer) val;
+        } catch (Throwable ignored) {
+        }
+        // fallback: no mana usage info available
+        return 0;
     }
 
     public int getMaxManaPerTick() {
