@@ -296,10 +296,15 @@ public class BlockEntityManaPoolPattern extends RecipeTile<ManaInfusionRecipe>
                 return List.of();
             }
 
-            java.util.Set<Item> catalysts = new java.util.LinkedHashSet<>();
+            List<Item> catalysts = new ArrayList();
             this.level.getRecipeManager().getAllRecipesFor(BotaniaRecipeTypes.MANA_INFUSION_TYPE).forEach((recipe) -> {
                 if (recipe.getRecipeCatalyst() != null) {
-                    recipe.getRecipeCatalyst().getDisplayedStacks().stream().map(ItemStack::getItem).forEach(catalysts::add);
+                    recipe.getRecipeCatalyst().getDisplayedStacks().stream().map(ItemStack::getItem).forEach((item) -> {
+                        if (!catalysts.contains(item)) {
+                            catalysts.add(item);
+                        }
+
+                    });
                 }
 
             });
