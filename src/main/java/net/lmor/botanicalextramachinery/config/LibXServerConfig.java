@@ -18,6 +18,8 @@ public class LibXServerConfig {
         public static int saffronSpark = 100000;
         public static int shadowSpark = 500000;
         public static int crimsonSpark = 1000000;
+        public static int aureateSpark = 2500000;
+        public static int mazarineSpark = 5000000;
 
         public SparkTier() {}
     }

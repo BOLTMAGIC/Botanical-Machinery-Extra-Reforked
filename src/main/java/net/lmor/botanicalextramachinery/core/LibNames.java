@@ -21,11 +21,23 @@ public class LibNames {
     public static final String CRIMSON_INGOT = "crimson_ingot";
     public static final String CRIMSON_INGOT_BLOCK = "crimson_ingot_block";
 
+    public static final String AUREATE_DRAGONSTONE_BLOCK = "aureate_dragonstone_block";
+    public static final String AUREATE_DRAGONSTONE = "aureate_dragonstone";
+    public static final String AUREATE_INGOT = "aureate_ingot";
+    public static final String AUREATE_INGOT_BLOCK = "aureate_ingot_block";
+
+    public static final String MAZARINE_DRAGONSTONE_BLOCK = "mazarine_dragonstone_block";
+    public static final String MAZARINE_DRAGONSTONE = "mazarine_dragonstone";
+    public static final String MAZARINE_INGOT = "mazarine_ingot";
+    public static final String MAZARINE_INGOT_BLOCK = "mazarine_ingot_block";
+
     public static final String BASE_SPARK = "base_spark";
     public static final String MALACHITE_SPARK = "malachite_spark";
     public static final String SAFFRON_SPARK = "saffrom_spark";
     public static final String SHADOW_SPARK = "shadow_spark";
     public static final String CRIMSON_SPARK = "crimson_spark";
+    public static final String AUREATE_SPARK = "aureate_spark";
+    public static final String MAZARINE_SPARK = "mazarine_spark";
 
     public static final String BASE_MECHANICAL_MANA_POOL = "base_mechanical_mana_pool";
     public static final String UPGRADED_MECHANICAL_MANA_POOL = "upgraded_mechanical_mana_pool";

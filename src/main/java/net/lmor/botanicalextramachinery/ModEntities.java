@@ -19,6 +19,8 @@ public class ModEntities {
     public static final EntityType<EntitySaffronManaSpark> SAFFRON_SPARK = EntityType.Builder.<EntitySaffronManaSpark>of(EntitySaffronManaSpark::new, MobCategory.MISC).sized(0.2F, 0.5F).fireImmune().clientTrackingRange(4).updateInterval(10).build(LibNames.SAFFRON_SPARK);
     public static final EntityType<EntityShadowManaSpark> SHADOW_SPARK = EntityType.Builder.<EntityShadowManaSpark>of(EntityShadowManaSpark::new, MobCategory.MISC).sized(0.2F, 0.5F).fireImmune().clientTrackingRange(4).updateInterval(10).build(LibNames.SHADOW_SPARK);
     public static final EntityType<EntityCrimsonManaSpark> CRIMSON_SPARK = EntityType.Builder.<EntityCrimsonManaSpark>of(EntityCrimsonManaSpark::new, MobCategory.MISC).sized(0.2F, 0.5F).fireImmune().clientTrackingRange(4).updateInterval(10).build(LibNames.CRIMSON_SPARK);
+    public static final EntityType<EntityAureateManaSpark> AUREATE_SPARK = EntityType.Builder.<EntityAureateManaSpark>of(EntityAureateManaSpark::new, MobCategory.MISC).sized(0.2F, 0.5F).fireImmune().clientTrackingRange(4).updateInterval(10).build(LibNames.AUREATE_SPARK);
+    public static final EntityType<EntityMazarineManaSpark> MAZARINE_SPARK = EntityType.Builder.<EntityMazarineManaSpark>of(EntityMazarineManaSpark::new, MobCategory.MISC).sized(0.2F, 0.5F).fireImmune().clientTrackingRange(4).updateInterval(10).build(LibNames.MAZARINE_SPARK);
 
     public static void registerWandHudCaps(ECapConsumer<WandHUD> consumer) {
         consumer.accept(e -> new EntityBaseManaSpark.WandHud((EntityBaseManaSpark) e), BASE_SPARK);
@@ -26,6 +28,8 @@ public class ModEntities {
         consumer.accept(e -> new EntitySaffronManaSpark.WandHud((EntitySaffronManaSpark) e), SAFFRON_SPARK);
         consumer.accept(e -> new EntityShadowManaSpark.WandHud((EntityShadowManaSpark) e), SHADOW_SPARK);
         consumer.accept(e -> new EntityCrimsonManaSpark.WandHud((EntityCrimsonManaSpark) e), CRIMSON_SPARK);
+        consumer.accept(e -> new EntityAureateManaSpark.WandHud((EntityAureateManaSpark) e), AUREATE_SPARK);
+        consumer.accept(e -> new EntityMazarineManaSpark.WandHud((EntityMazarineManaSpark) e), MAZARINE_SPARK);
     }
 
     @FunctionalInterface
@@ -39,5 +43,7 @@ public class ModEntities {
         r.accept(SAFFRON_SPARK, LibResources.SAFFRON_SPARK);
         r.accept(SHADOW_SPARK, LibResources.SHADOW_SPARK);
         r.accept(CRIMSON_SPARK, LibResources.CRIMSON_SPARK);
+        r.accept(AUREATE_SPARK, LibResources.AUREATE_SPARK);
+        r.accept(MAZARINE_SPARK, LibResources.MAZARINE_SPARK);
     }
 }

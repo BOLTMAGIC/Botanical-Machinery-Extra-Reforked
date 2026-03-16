@@ -4,6 +4,7 @@ import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.registration.IGuiHandlerRegistration;
 import mezz.jei.api.registration.IRecipeCatalystRegistration;
+import java.lang.reflect.*;
 import net.lmor.botanicalextramachinery.ModBlocks;
 import net.lmor.botanicalextramachinery.blocks.screens.mechanicalAlfheimMarket.ScreenAlfheimMarketAdvanced;
 import net.lmor.botanicalextramachinery.blocks.screens.mechanicalAlfheimMarket.ScreenAlfheimMarketBase;
@@ -103,12 +104,33 @@ public class jei implements IModPlugin {
         registration.addRecipeClickArea(ScreenIndustrialAgglomerationFactoryAdvanced.class, 78, 57, 40, 16, TerrestrialAgglomerationRecipeCategory.TYPE);
         registration.addRecipeClickArea(ScreenIndustrialAgglomerationFactoryUltimate.class, 88, 69, 40, 16, TerrestrialAgglomerationRecipeCategory.TYPE);
 
-        mezz.jei.api.recipe.RecipeType<?> infusionType = getInfusionTypeSafe();
-        if (infusionType != null) {
-            registration.addRecipeClickArea(ScreenManaInfuserBase.class, 78, 57, 40, 16, infusionType);
-            registration.addRecipeClickArea(ScreenManaInfuserUpgraded.class, 78, 57, 40, 16, infusionType);
-            registration.addRecipeClickArea(ScreenManaInfuserAdvanced.class, 78, 57, 40, 16, infusionType);
-            registration.addRecipeClickArea(ScreenManaInfuserUltimate.class, 88, 69, 40, 16, infusionType);
+        if (ModList.get().isLoaded("mythicbotany")) {
+            try {
+                // Load the InfusionCategory class reflectively to avoid hard dependency
+                Class<?> infusionClass = Class.forName("mythicbotany.jei.InfusionCategory");
+                Field typeField = infusionClass.getField("TYPE");
+                Object type = typeField.get(null);
+
+                // Find the addRecipeClickArea method reflectively (varargs last parameter)
+                Method addClickArea = null;
+                for (Method m : registration.getClass().getMethods()) {
+                    if (m.getName().equals("addRecipeClickArea") && m.getParameterCount() == 6) {
+                        addClickArea = m;
+                        break;
+                    }
+                }
+
+                if (addClickArea != null) {
+                    Object arr = Array.newInstance(type.getClass(), 1);
+                    Array.set(arr, 0, type);
+                    addClickArea.invoke(registration, ScreenManaInfuserBase.class, 78, 57, 40, 16, arr);
+                    addClickArea.invoke(registration, ScreenManaInfuserUpgraded.class, 78, 57, 40, 16, arr);
+                    addClickArea.invoke(registration, ScreenManaInfuserAdvanced.class, 78, 57, 40, 16, arr);
+                    addClickArea.invoke(registration, ScreenManaInfuserUltimate.class, 88, 69, 40, 16, arr);
+                }
+            } catch (ClassNotFoundException | NoSuchFieldException | IllegalAccessException | InvocationTargetException e) {
+                // If MythicBotany classes are not available or reflection fails, skip registering infusion areas
+            }
         }
 
         registration.addRecipeClickArea(ScreenAlfheimMarketBase.class, 90, 53, 16, 16, ElvenTradeRecipeCategory.TYPE);
@@ -149,12 +171,29 @@ public class jei implements IModPlugin {
         registration.addRecipeCatalyst(new ItemStack(ModBlocks.advancedIndustrialAgglomerationFactory), TerrestrialAgglomerationRecipeCategory.TYPE);
         registration.addRecipeCatalyst(new ItemStack(ModBlocks.ultimateIndustrialAgglomerationFactory), TerrestrialAgglomerationRecipeCategory.TYPE);
 
-        mezz.jei.api.recipe.RecipeType<?> infusionType = getInfusionTypeSafe();
-        if (infusionType != null) {
-            registration.addRecipeCatalyst(new ItemStack(ModBlocks.baseManaInfuser), infusionType);
-            registration.addRecipeCatalyst(new ItemStack(ModBlocks.upgradedManaInfuser), infusionType);
-            registration.addRecipeCatalyst(new ItemStack(ModBlocks.advancedManaInfuser), infusionType);
-            registration.addRecipeCatalyst(new ItemStack(ModBlocks.ultimateManaInfuser), infusionType);
+        if (ModList.get().isLoaded("mythicbotany")) {
+            try {
+                Class<?> infusionClass = Class.forName("mythicbotany.jei.InfusionCategory");
+                Field typeField = infusionClass.getField("TYPE");
+                Object type = typeField.get(null);
+
+                Method addCatalyst = null;
+                for (Method m : registration.getClass().getMethods()) {
+                    if (m.getName().equals("addRecipeCatalyst") && m.getParameterCount() == 2) {
+                        addCatalyst = m;
+                        break;
+                    }
+                }
+
+                if (addCatalyst != null) {
+                    addCatalyst.invoke(registration, new ItemStack(ModBlocks.baseManaInfuser), type);
+                    addCatalyst.invoke(registration, new ItemStack(ModBlocks.upgradedManaInfuser), type);
+                    addCatalyst.invoke(registration, new ItemStack(ModBlocks.advancedManaInfuser), type);
+                    addCatalyst.invoke(registration, new ItemStack(ModBlocks.ultimateManaInfuser), type);
+                }
+            } catch (ClassNotFoundException | NoSuchFieldException | IllegalAccessException | InvocationTargetException e) {
+                // If MythicBotany classes are not available or reflection fails, skip registering infusion catalysts
+            }
         }
 
         registration.addRecipeCatalyst(new ItemStack(ModBlocks.baseAlfheimMarket), ElvenTradeRecipeCategory.TYPE);

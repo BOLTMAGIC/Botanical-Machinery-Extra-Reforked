@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "botanicalextramachinery:mazarine_ingot_block"
+    }
+  ],
+  "result": {
+    "count": 9,
+    "item": "botanicalextramachinery:mazarine_ingot"
+  }
+}
+

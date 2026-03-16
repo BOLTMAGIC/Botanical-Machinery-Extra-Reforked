@@ -14,6 +14,8 @@ public class ModModels {
     public final Material saffronSparkWorldIcon = mainAtlas("item/saffron_spark");
     public final Material shadowSparkWorldIcon = mainAtlas("item/shadow_spark");
     public final Material crimsonSparkWorldIcon = mainAtlas("item/crimson_spark");
+    public final Material aureateSparkWorldIcon = mainAtlas("item/aureate_spark");
+    public final Material mazarineSparkWorldIcon = mainAtlas("item/mazarine_spark");
 
     private static Material mainAtlas(String name) {
         return new Material(InventoryMenu.BLOCK_ATLAS, res(name));

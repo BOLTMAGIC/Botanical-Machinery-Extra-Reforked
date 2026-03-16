@@ -1,5 +1,4 @@
 package net.lmor.botanicalextramachinery.events;
-
 import net.lmor.botanicalextramachinery.ExtraMachinery;
 import net.lmor.botanicalextramachinery.blocks.flowersGreenhouse.GenFlowers;
 import net.lmor.botanicalextramachinery.blocks.flowersGreenhouse.flowers.*;
@@ -46,14 +45,24 @@ public class EventListener {
 
         if (ModList.get().isLoaded("mythicbotany")){
             try {
-                Class<?> mbBlocks = Class.forName("mythicbotany.register.ModBlocks");
-                java.lang.reflect.Field f = mbBlocks.getField("witherAconite");
-                Object val = f.get(null);
-                // If it's a RegistryObject or Supplier, try to call get()
-                try {
-                    java.lang.reflect.Method mg = val.getClass().getMethod("get");
-                    val = mg.invoke(val);
-                } catch (Throwable ignored) {}
+                // Use reflection to avoid hard dependency on MythicBotany classes
+                Class<?> mythicModBlocks = Class.forName("mythicbotany.register.ModBlocks");
+                java.lang.reflect.Field f = mythicModBlocks.getField("witherAconite");
+                Object witherBlock = f.get(null);
+                if (witherBlock != null) {
+                    // Call asItem() reflectively
+                    java.lang.reflect.Method asItem = witherBlock.getClass().getMethod("asItem");
+                    Object item = asItem.invoke(witherBlock);
+                    if (item instanceof net.minecraft.world.item.Item) {
+                        GenFlowers.addAllGenFlowers((net.minecraft.world.item.Item)item, new WitherAconite());
+                    } else if (item instanceof net.minecraft.world.item.ItemStack) {
+                        GenFlowers.addAllGenFlowers(((net.minecraft.world.item.ItemStack)item).getItem(), new WitherAconite());
+                    }
+                }
+            } catch (ClassNotFoundException | NoSuchFieldException | IllegalAccessException | NoSuchMethodException | java.lang.reflect.InvocationTargetException e) {
+                // MythicBotany not present or reflection failed; skip adding the flower
+            }
+        }
 
                 if (val instanceof net.minecraft.world.level.block.Block) {
                     net.minecraft.world.level.block.Block block = (net.minecraft.world.level.block.Block) val;

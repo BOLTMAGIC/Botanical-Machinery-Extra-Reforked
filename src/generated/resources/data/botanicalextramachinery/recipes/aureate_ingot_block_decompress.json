@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "botanicalextramachinery:aureate_ingot_block"
+    }
+  ],
+  "result": {
+    "count": 9,
+    "item": "botanicalextramachinery:aureate_ingot"
+  }
+}
+

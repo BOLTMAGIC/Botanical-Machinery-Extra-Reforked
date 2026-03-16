@@ -26,12 +26,16 @@ public class Recipes extends RecipeProviderBase implements CraftingExtension, Co
         this.compress(ModItems.shadowDragonstone, ModBlocks.shadowDragonstoneBlock);
         this.compress(ModItems.crimsonDragonstone, ModBlocks.crimsonDragonstoneBlock);
         this.compress(ModItems.crystalDragonstone, ModBlocks.crystalDragonstoneBlock);
+        this.compress(ModItems.aureateDragonstone, ModBlocks.aureateDragonstoneBlock);
+        this.compress(ModItems.mazarineDragonstone, ModBlocks.mazarineDragonstoneBlock);
 
         this.compress(ModItems.malachiteIngot, ModBlocks.malachiteIngotBlock);
         this.compress(ModItems.saffronIngot, ModBlocks.saffronIngotBlock);
         this.compress(ModItems.shadowIngot, ModBlocks.shadowIngotBlock);
         this.compress(ModItems.crimsonIngot, ModBlocks.crimsonIngotBlock);
         this.compress(ModItems.crystalIngot, ModBlocks.crystalIngotBlock);
+        this.compress(ModItems.aureateIngot, ModBlocks.aureateIngotBlock);
+        this.compress(ModItems.mazarineIngot, ModBlocks.mazarineIngotBlock);
 
         this.machine(ModBlocks.jadedAmaranthus, BotaniaItems.manaRingGreater, ModItems.crystalIngot, BotaniaFlowerBlocks.jadedAmaranthus, ModBlocks.crystalDragonstoneBlock);
 

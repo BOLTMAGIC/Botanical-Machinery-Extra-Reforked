@@ -72,6 +72,8 @@ public class TooltipHandler {
         tooltipSparks.add(saffronSpark);
         tooltipSparks.add(shadowSpark);
         tooltipSparks.add(crimsonSpark);
+        tooltipSparks.add(aureateSpark);
+        tooltipSparks.add(mazarineSpark);
 
         catalystList.put(catalystManaInfinity, new String[] { "botanicalextramachinery.tooltip.item.mana_infinity" });
         catalystList.put(catalystLivingRockInfinity, new String[] { "botanicalextramachinery.tooltip.item.livingrock" });
@@ -148,6 +150,10 @@ public class TooltipHandler {
                     transfer = EntityShadowManaSpark.getRate();
                 } else if (stack.getItem() == crimsonSpark) {
                     transfer = EntityCrimsonManaSpark.getRate();
+                } else if (stack.getItem() == aureateSpark) {
+                    transfer = EntityAureateManaSpark.getRate();
+                } else if (stack.getItem() == mazarineSpark) {
+                    transfer = EntityMazarineManaSpark.getRate();
                 }
 
                 if (transfer != 0) {

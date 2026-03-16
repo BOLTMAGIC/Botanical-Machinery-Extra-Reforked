@@ -1,0 +1,17 @@
+{
+  "type": "botania:elven_trade",
+  "ingredients": [
+    {
+      "item": "botanicalextramachinery:mazarine_ingot"
+    },
+    {
+      "item": "botanicalextramachinery:aureate_dragonstone"
+    }
+  ],
+  "output": [
+    {
+      "item": "botanicalextramachinery:mazarine_dragonstone"
+    }
+  ]
+}
+

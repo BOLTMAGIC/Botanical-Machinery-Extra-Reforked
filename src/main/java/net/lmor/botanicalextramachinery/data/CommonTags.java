@@ -21,8 +21,12 @@ public class CommonTags extends CommonTagsProviderBase {
 
         this.block(BlockTags.NEEDS_DIAMOND_TOOL).add(ModBlocks.shadowDragonstoneBlock);
         this.block(BlockTags.NEEDS_DIAMOND_TOOL).add(ModBlocks.crimsonDragonstoneBlock);
+        this.block(BlockTags.NEEDS_DIAMOND_TOOL).add(ModBlocks.aureateDragonstoneBlock);
+        this.block(BlockTags.NEEDS_DIAMOND_TOOL).add(ModBlocks.mazarineDragonstoneBlock);
         this.block(BlockTags.NEEDS_DIAMOND_TOOL).add(ModBlocks.shadowIngotBlock);
         this.block(BlockTags.NEEDS_DIAMOND_TOOL).add(ModBlocks.crimsonIngotBlock);
+        this.block(BlockTags.NEEDS_DIAMOND_TOOL).add(ModBlocks.aureateIngotBlock);
+        this.block(BlockTags.NEEDS_DIAMOND_TOOL).add(ModBlocks.mazarineIngotBlock);
     }
 
     public void defaultBlockTags(Block block) {

@@ -1,0 +1,28 @@
+{
+  "type": "botania:terra_plate",
+  "ingredients": [
+    {
+      "item": "botanicalextramachinery:crimson_ingot"
+    },
+    {
+      "item": "botania:gaia_ingot"
+    },
+    {
+      "item": "botania:gaia_ingot"
+    },
+    {
+      "item": "botania:gaia_ingot"
+    },
+    {
+      "item": "botania:gaia_ingot"
+    },
+    {
+      "item": "botanicalextramachinery:crimson_ingot_block"
+    }
+  ],
+  "mana": 2500000,
+  "result": {
+    "item": "botanicalextramachinery:aureate_ingot"
+  }
+}
+

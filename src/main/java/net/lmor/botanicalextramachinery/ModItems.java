@@ -23,6 +23,10 @@ public class ModItems {
 
     public static final Item crystalDragonstone;
     public static final Item crystalIngot;
+    public static final Item aureateDragonstone;
+    public static final Item aureateIngot;
+    public static final Item mazarineDragonstone;
+    public static final Item mazarineIngot;
 
     public static final Item catalystPattern;
     public static final Item catalystManaInfinity;
@@ -40,6 +44,8 @@ public class ModItems {
     public static final Item saffronSpark;
     public static final Item shadowSpark;
     public static final Item crimsonSpark;
+    public static final Item aureateSpark;
+    public static final Item mazarineSpark;
 
     public static final Item upgradePattern;
     public static final ItemUpgrade upgradeCostEnergy;
@@ -68,18 +74,24 @@ public class ModItems {
         saffronSpark = new ItemSaffronManaSpark(ExtraMachinery.getInstance(), new Item.Properties());
         shadowSpark = new ItemShadowManaSpark(ExtraMachinery.getInstance(), new Item.Properties());
         crimsonSpark = new ItemCrimsonManaSpark(ExtraMachinery.getInstance(), new Item.Properties());
+        aureateSpark = new ItemAureateManaSpark(ExtraMachinery.getInstance(), new Item.Properties());
+        mazarineSpark = new ItemMazarineManaSpark(ExtraMachinery.getInstance(), new Item.Properties());
 
         malachiteDragonstone = new ItemBase(ExtraMachinery.getInstance(), new Item.Properties());
         saffronDragonstone = new ItemBase(ExtraMachinery.getInstance(), new Item.Properties());
         shadowDragonstone = new ItemBase(ExtraMachinery.getInstance(), new Item.Properties());
         crimsonDragonstone = new ItemBase(ExtraMachinery.getInstance(), new Item.Properties());
         crystalDragonstone = new ItemBase(ExtraMachinery.getInstance(), new Item.Properties());
+        aureateDragonstone = new ItemBase(ExtraMachinery.getInstance(), new Item.Properties());
+        mazarineDragonstone = new ItemBase(ExtraMachinery.getInstance(), new Item.Properties());
 
         malachiteIngot = new ItemBase(ExtraMachinery.getInstance(), new Item.Properties());
         saffronIngot = new ItemBase(ExtraMachinery.getInstance(), new Item.Properties());
         shadowIngot = new ItemBase(ExtraMachinery.getInstance(), new Item.Properties());
         crimsonIngot = new ItemBase(ExtraMachinery.getInstance(), new Item.Properties());
         crystalIngot = new ItemBase(ExtraMachinery.getInstance(), new Item.Properties());
+        aureateIngot = new ItemBase(ExtraMachinery.getInstance(), new Item.Properties());
+        mazarineIngot = new ItemBase(ExtraMachinery.getInstance(), new Item.Properties());
 
         catalystPattern = new ItemBase(ExtraMachinery.getInstance(), new Item.Properties());
         catalystManaInfinity = new ItemBase(ExtraMachinery.getInstance(), new Item.Properties());
