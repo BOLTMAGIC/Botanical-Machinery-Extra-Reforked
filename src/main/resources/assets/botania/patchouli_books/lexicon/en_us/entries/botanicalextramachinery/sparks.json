@@ -33,6 +33,16 @@
       "type": "botania:runic_altar",
       "title": "item.botanicalextramachinery.crimson_spark",
       "recipe": "botanicalextramachinery:runic_altar/crimson_spark"
+    },
+    {
+      "type": "botania:runic_altar",
+      "title": "item.botanicalextramachinery.aureate_spark",
+      "recipe": "botanicalextramachinery:runic_altar/aureate_spark"
+    },
+    {
+      "type": "botania:runic_altar",
+      "title": "item.botanicalextramachinery.mazarine_spark",
+      "recipe": "botanicalextramachinery:runic_altar/mazarine_spark"
     }
   ]
 }
