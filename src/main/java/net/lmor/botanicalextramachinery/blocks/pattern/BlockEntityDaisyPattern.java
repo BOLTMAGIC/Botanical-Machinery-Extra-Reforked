@@ -250,6 +250,7 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
                 --this.ticksToNextUpdate;
             }
         }
+        updateUpgradeSlot();
     }
 
     private void updateUpgradeSlot(){
