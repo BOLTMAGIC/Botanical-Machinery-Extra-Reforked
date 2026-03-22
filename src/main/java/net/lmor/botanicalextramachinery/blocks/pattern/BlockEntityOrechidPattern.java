@@ -66,8 +66,6 @@ public class BlockEntityOrechidPattern extends ExtraBotanicalTile
 
     private int timeCheckOutputSlot = LibXServerConfig.tickOutputSlots;
 
-    private boolean isInfinityMana = false;
-
     public BlockEntityOrechidPattern(BlockEntityType<?> blockEntityType, BlockPos pos, BlockState state,
                                      int manaCap, int[] slots, int[] upgrade_slot, SettingPattern settingPattern) {
 
@@ -91,9 +89,9 @@ public class BlockEntityOrechidPattern extends ExtraBotanicalTile
 
         if (upgrade_slot != null){
             this.inventory = BaseItemStackHandler.builder(LAST_OUTPUT_SLOT + 1)
-                    .validator((stack) -> { return stack.getItem() == ModItems.catalystManaInfinity.asItem() || stack.getItem() == ModItems.catalystStoneInfinity.asItem();}, UPGRADE_SLOT_1, UPGRADE_SLOT_2)
-                    .validator((stack) -> { return this.level != null && getInputs().contains(stack.getItem());}, Range.closedOpen(FIRST_INPUT_SLOT, LAST_INPUT_SLOT + 1))
-                    .validator((stack) -> { return getOutputs().contains(stack.getItem());}, FILTER_SLOTS.stream().mapToInt(Integer::intValue).toArray())
+                    .validator((stack) -> stack.getItem() == ModItems.catalystManaInfinity.asItem() || stack.getItem() == ModItems.catalystStoneInfinity.asItem(), UPGRADE_SLOT_1, UPGRADE_SLOT_2)
+                    .validator((stack) -> this.level != null && getInputs().contains(stack.getItem()), Range.closedOpen(FIRST_INPUT_SLOT, LAST_INPUT_SLOT + 1))
+                    .validator((stack) -> getOutputs().contains(stack.getItem()), FILTER_SLOTS.stream().mapToInt(Integer::intValue).toArray())
                     .output(Range.closedOpen(FIRST_OUTPUT_SLOT, LAST_OUTPUT_SLOT + 1)).contentsChanged(() -> {this.setChanged();this.setDispatchable();})
                     .slotLimit(1, UPGRADE_SLOT_1, UPGRADE_SLOT_2)
                     .slotLimit(1, FILTER_SLOTS.stream().mapToInt(Integer::intValue).toArray())
@@ -101,8 +99,8 @@ public class BlockEntityOrechidPattern extends ExtraBotanicalTile
         }
         else{
             this.inventory = BaseItemStackHandler.builder(LAST_OUTPUT_SLOT + 1)
-                    .validator((stack) -> { return this.level != null && getInputs().contains(stack.getItem());}, Range.closedOpen(FIRST_INPUT_SLOT, LAST_INPUT_SLOT + 1))
-                    .validator((stack) -> { return getOutputs().contains(stack.getItem());}, FILTER_SLOTS.stream().mapToInt(Integer::intValue).toArray())
+                    .validator((stack) -> this.level != null && getInputs().contains(stack.getItem()), Range.closedOpen(FIRST_INPUT_SLOT, LAST_INPUT_SLOT + 1))
+                    .validator((stack) -> getOutputs().contains(stack.getItem()), FILTER_SLOTS.stream().mapToInt(Integer::intValue).toArray())
                     .output(Range.closedOpen(FIRST_OUTPUT_SLOT, LAST_OUTPUT_SLOT + 1)).contentsChanged(() -> {this.setChanged();this.setDispatchable();})
                     .slotLimit(1, FILTER_SLOTS.stream().mapToInt(Integer::intValue).toArray())
                     .build();
@@ -153,9 +151,9 @@ public class BlockEntityOrechidPattern extends ExtraBotanicalTile
                 }
             }
 
-            isInfinityMana = (
-                (UPGRADE_SLOT_1 != -1 && this.inventory.getStackInSlot(UPGRADE_SLOT_1).getItem() == ModItems.catalystManaInfinity) ||
-                (UPGRADE_SLOT_2 != -1 && this.inventory.getStackInSlot(UPGRADE_SLOT_2).getItem() == ModItems.catalystManaInfinity)
+            boolean isInfinityMana = (
+                    (UPGRADE_SLOT_1 != -1 && this.inventory.getStackInSlot(UPGRADE_SLOT_1).getItem() == ModItems.catalystManaInfinity) ||
+                            (UPGRADE_SLOT_2 != -1 && this.inventory.getStackInSlot(UPGRADE_SLOT_2).getItem() == ModItems.catalystManaInfinity)
             );
 
 
@@ -167,7 +165,6 @@ public class BlockEntityOrechidPattern extends ExtraBotanicalTile
 
             if (this.cooldown <= 0) {
                 int output_slot = LAST_INPUT_SLOT;
-                int count_success = 0;
                 for (int input_slot = FIRST_INPUT_SLOT; input_slot <= LAST_INPUT_SLOT; input_slot++){
                     output_slot++;
                     if (inventory.getStackInSlot(input_slot).isEmpty() || !inventory.getStackInSlot(output_slot).isEmpty()) continue;
@@ -198,18 +195,15 @@ public class BlockEntityOrechidPattern extends ExtraBotanicalTile
 
                     inventory.extractItem(input_slot, count_recipe, false);
                     inventory.insertItem(output_slot, resItemStack, false);
-                    count_success++;
                 }
 
-                if (count_success != 0){
-                    if (UPGRADE_SLOT_1 != -1 && UPGRADE_SLOT_2 != -1){
-                        if (this.inventory.getStackInSlot(UPGRADE_SLOT_1).getItem() == ModItems.catalystStoneInfinity
-                                || this.inventory.getStackInSlot(UPGRADE_SLOT_2).getItem() == ModItems.catalystStoneInfinity){
-                            ItemStack stone = new ItemStack(Items.STONE);
-                            stone.setCount(64);
-                            for (int i = FIRST_INPUT_SLOT; i <= LAST_INPUT_SLOT; i++){
-                                inventory.setStackInSlot(i, stone.copy());
-                            }
+                if (UPGRADE_SLOT_1 != -1 && UPGRADE_SLOT_2 != -1){
+                    if (this.inventory.getStackInSlot(UPGRADE_SLOT_1).getItem() == ModItems.catalystStoneInfinity
+                            || this.inventory.getStackInSlot(UPGRADE_SLOT_2).getItem() == ModItems.catalystStoneInfinity){
+                        ItemStack stone = new ItemStack(Items.STONE);
+                        stone.setCount(64);
+                        for (int i = FIRST_INPUT_SLOT; i <= LAST_INPUT_SLOT; i++){
+                            inventory.setStackInSlot(i, stone.copy());
                         }
                     }
                 }
@@ -221,9 +215,7 @@ public class BlockEntityOrechidPattern extends ExtraBotanicalTile
 
     @Override
     protected Predicate<Integer> getExtracts(Supplier<IItemHandlerModifiable> supplier) {
-        return (slot) -> {
-            return slot >= FIRST_OUTPUT_SLOT && slot <= LAST_OUTPUT_SLOT;
-        };
+        return (slot) -> slot >= FIRST_OUTPUT_SLOT && slot <= LAST_OUTPUT_SLOT;
     }
 
     @NotNull
@@ -323,33 +315,32 @@ public class BlockEntityOrechidPattern extends ExtraBotanicalTile
         return STATIC_ORECHID_INPUTS == null ? List.of() : List.copyOf(STATIC_ORECHID_INPUTS);
     }
 
+    @SuppressWarnings("unused")
     public static void invalidateOrechidCaches() {
         STATIC_ORECHID_INPUTS = null;
         STATIC_ORECHID_OUTPUTS = null;
     }
 
     public @Nullable OrechidRecipe getRecipeOrechid(){
-        List<WeightedEntry.Wrapper<OrechidRecipe>> values = new ArrayList();
+        List<WeightedEntry.Wrapper<OrechidRecipe>> values = new ArrayList<>();
 
-        this.level.getRecipeManager().getAllRecipesFor(BotaniaRecipeTypes.ORECHID_TYPE).forEach((recipe) -> {
-            values.add(WeightedEntry.wrap(recipe, recipe.getWeight()));
-        });
+        assert this.level != null;
+        this.level.getRecipeManager().getAllRecipesFor(BotaniaRecipeTypes.ORECHID_TYPE).forEach((recipe) -> values.add(WeightedEntry.wrap(recipe, recipe.getWeight())));
 
         return WeightedRandom.getRandomItem(this.level.random, values).map(WeightedEntry.Wrapper::getData).orElse(null);
     }
 
     public @Nullable OrechidRecipe getRecipeOrechidFilter(){
-        List<WeightedEntry.Wrapper<OrechidRecipe>> values = new ArrayList();
+        List<WeightedEntry.Wrapper<OrechidRecipe>> values = new ArrayList<>();
 
-        this.level.getRecipeManager().getAllRecipesFor(BotaniaRecipeTypes.ORECHID_TYPE).forEach((recipe) -> {
-            recipe.getOutput().getDisplayedStacks().stream().forEach(itemStack -> {
-                for (int index: FILTER_SLOTS){
-                    if (inventory.getStackInSlot(index).getItem() == itemStack.getItem()){
-                        values.add(WeightedEntry.wrap(recipe, recipe.getWeight()));
-                    }
+        assert this.level != null;
+        this.level.getRecipeManager().getAllRecipesFor(BotaniaRecipeTypes.ORECHID_TYPE).forEach((recipe) -> recipe.getOutput().getDisplayedStacks().forEach(itemStack -> {
+            for (int index: FILTER_SLOTS){
+                if (inventory.getStackInSlot(index).getItem() == itemStack.getItem()){
+                    values.add(WeightedEntry.wrap(recipe, recipe.getWeight()));
                 }
-            });
-        });
+            }
+        }));
 
         return WeightedRandom.getRandomItem(this.level.random, values).map(WeightedEntry.Wrapper::getData).orElse(null);
     }
@@ -382,10 +373,9 @@ public class BlockEntityOrechidPattern extends ExtraBotanicalTile
         }
     }
 
-    private Object setChangedAtEndOfTick(Level level) {
+    private void setChangedAtEndOfTick(Level level) {
         this.setChanged();
         this.setChangedQueued = false;
-        return null;
     }
 
     @Nullable
@@ -424,7 +414,7 @@ public class BlockEntityOrechidPattern extends ExtraBotanicalTile
             ItemStack stackInSlot = this.inventory.getStackInSlot(slot);
 
             if (!stackInSlot.isEmpty()) {
-                int getCountExport = Math.toIntExact(this.getMainNode().getGrid().getStorageService().getInventory().insert(AEItemKey.of(stackInSlot), stackInSlot.getCount(), Actionable.MODULATE, IActionSource.empty()));
+                int getCountExport = Math.toIntExact(Objects.requireNonNull(this.getMainNode().getGrid()).getStorageService().getInventory().insert(AEItemKey.of(stackInSlot), stackInSlot.getCount(), Actionable.MODULATE, IActionSource.empty()));
 
                 if (getCountExport > 0) {
                     stackInSlot.shrink(getCountExport);
