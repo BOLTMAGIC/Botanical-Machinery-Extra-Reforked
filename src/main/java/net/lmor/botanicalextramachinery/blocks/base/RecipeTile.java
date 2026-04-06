@@ -69,15 +69,7 @@ public abstract class RecipeTile<T extends Recipe<Container>> extends ExtraBotan
         }
     }
 
-    protected void updateRecipe() {
-        this.updateRecipe((stack, slot) -> {
-        });
-    }
-
-    public int getCountCraftPerRecipe() {
-        return countCraftPerRecipe;
-    }
-
+    @SuppressWarnings({"rawtypes", "unchecked"})
     protected void updateRecipe(BiConsumer<ItemStack, Integer> usedStacks) {
         if (this.level != null && !this.level.isClientSide) {
             if (!this.canMatchRecipes()) {
@@ -98,7 +90,7 @@ public abstract class RecipeTile<T extends Recipe<Container>> extends ExtraBotan
                     }
 
                     recipe = (Recipe)iterator.next();
-                } while(!this.matchRecipe((T) recipe, stacks));
+                } while(this.matchRecipe((T) recipe, stacks));
 
                 // Build a simple per-ingredient item array cache for fast matching when possible
                 List<Ingredient> ingredients = recipe.getIngredients();
@@ -107,7 +99,7 @@ public abstract class RecipeTile<T extends Recipe<Container>> extends ExtraBotan
                 for (int ingIdx = 0; ingIdx < nIngredients; ingIdx++) {
                     Ingredient ing = ingredients.get(ingIdx);
                     ItemStack[] items = ing.getItems();
-                    if (items == null || items.length == 0) {
+                    if (items.length == 0) {
                         this.cachedIngredientItems.add(null);
                         continue;
                     }
@@ -126,7 +118,7 @@ public abstract class RecipeTile<T extends Recipe<Container>> extends ExtraBotan
 
                 List<ItemStack> consumedStacks = new ArrayList<>();
 
-                this.countCraftPerRecipe = maxCountCraft(recipe.getIngredients().iterator(), stacks);
+                this.countCraftPerRecipe = maxCountCraft(recipe.getIngredients().iterator());
 
                 if (recipe.getResultItem(this.level.registryAccess()).getCount() != 0){
                     int remainingItemsToPlace;
@@ -168,9 +160,7 @@ public abstract class RecipeTile<T extends Recipe<Container>> extends ExtraBotan
                     List<ItemStack> inputItemRes = new ArrayList<>();
                     for (int ingIdx = 0; ingIdx < nIngredients; ingIdx++) {
                         Ingredient ingredient = ingredients.get(ingIdx);
-                        for (ItemStack itemStack : Arrays.stream(ingredient.getItems()).toList()) {
-                            inputItemRes.add(itemStack);
-                        }
+                        inputItemRes.addAll(Arrays.stream(ingredient.getItems()).toList());
                     }
 
                     List<ItemStack> res = Streams.concat(new Stream[]{
@@ -229,12 +219,11 @@ public abstract class RecipeTile<T extends Recipe<Container>> extends ExtraBotan
                     this.recipe = (T) recipe;
                 }
 
-                return;
             }
         }
     }
 
-    public int maxCountCraft(Iterator iteratorRecipe, List<ItemStack> stacks){
+    public int maxCountCraft(@SuppressWarnings("rawtypes") Iterator iteratorRecipe){
         Map<Item, Integer> iteratorMap = new HashMap<>();
         Map<Item, Integer> allIngredients = new HashMap<>();
 
@@ -355,8 +344,7 @@ public abstract class RecipeTile<T extends Recipe<Container>> extends ExtraBotan
                 this.recipe = null;
                 this.needsRecipeUpdate();
                 this.countCraftPerRecipe = this.countCraft;
-                
-                return;
+
             }
 
         }
@@ -367,13 +355,14 @@ public abstract class RecipeTile<T extends Recipe<Container>> extends ExtraBotan
     }
 
     protected boolean matchRecipe(T recipe, List<ItemStack> stacks) {
-        return RecipeHelper.matches(recipe, stacks, false);
+        return !RecipeHelper.matches(recipe, stacks, false);
     }
 
     protected void onCrafted(T recipe, int countItemCraft) {
     }
 
     protected List<ItemStack> resultItems(T recipe, List<ItemStack> stacks) {
+        assert this.level != null;
         return recipe.getResultItem(this.level.registryAccess()).isEmpty() ? List.of() : List.of(recipe.getResultItem(this.level.registryAccess()).copy());
     }
 

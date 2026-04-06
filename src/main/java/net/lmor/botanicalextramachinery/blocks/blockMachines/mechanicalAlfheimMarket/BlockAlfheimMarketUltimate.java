@@ -11,8 +11,6 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.level.BlockGetter;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.shapes.CollisionContext;
@@ -20,7 +18,6 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import org.jetbrains.annotations.NotNull;
 import org.moddingx.libx.block.RotationShape;
 import org.moddingx.libx.mod.ModX;
 import org.moddingx.libx.registration.SetupContext;
@@ -38,9 +35,7 @@ public class BlockAlfheimMarketUltimate extends ExtraBotanicalBlock<BlockEntityA
     public void registerClient(SetupContext ctx) {
         super.registerClient(ctx);
         MenuScreens.register(ModBlocks.ultimateAlfheimMarket.menu, ScreenAlfheimMarketUltimate::new);
-        BlockEntityRenderers.register(this.getBlockEntityType(), (context) -> {
-            return new RenderAlpheimMarketUltimate();
-        });
+        BlockEntityRenderers.register(this.getBlockEntityType(), (context) -> new RenderAlpheimMarketUltimate());
     }
 
     @Nonnull

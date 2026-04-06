@@ -81,7 +81,7 @@ public abstract class WorkingTile<T extends Recipe<Container>> extends RecipeTil
 
     protected boolean getUpgradeInfinityMana() {
         return false;
-    };
+    }
 
     public int getComparatorOutput() {
         return this.getProgress() > 0 ? 15 : 0;

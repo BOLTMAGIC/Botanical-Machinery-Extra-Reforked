@@ -45,6 +45,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.function.Consumer;
 
+@SuppressWarnings("deprecation")
 public class BlockApothecaryBase extends MenuBlockBE<BlockEntityApothecaryBase, ContainerApothecaryBase> {
     public static final RotationShape SHAPE;
 
@@ -56,9 +57,7 @@ public class BlockApothecaryBase extends MenuBlockBE<BlockEntityApothecaryBase, 
     public void registerClient(SetupContext ctx) {
         ItemStackRenderer.addRenderBlock(this.getBlockEntityType(), true);
         MenuScreens.register(ModBlocks.baseApothecary.menu, ScreenApothecaryBase::new);
-        BlockEntityRenderers.register(this.getBlockEntityType(), (context) -> {
-            return new RenderApothecaryBase();
-        });
+        BlockEntityRenderers.register(this.getBlockEntityType(), (context) -> new RenderApothecaryBase());
     }
 
     @OnlyIn(Dist.CLIENT)
@@ -71,7 +70,8 @@ public class BlockApothecaryBase extends MenuBlockBE<BlockEntityApothecaryBase, 
         if (!level.isClientSide) {
             BlockEntity tile = level.getBlockEntity(pos);
             ItemStack held = player.getMainHandItem();
-            FluidActionResult fluidActionResult = FluidUtil.tryEmptyContainer(held, tile.getCapability(ForgeCapabilities.FLUID_HANDLER, null).orElse( null), 1000, player, true);
+            assert tile != null;
+            @SuppressWarnings("DataFlowIssue") FluidActionResult fluidActionResult = FluidUtil.tryEmptyContainer(held, tile.getCapability(ForgeCapabilities.FLUID_HANDLER, null).orElse( null), 1000, player, true);
             if (fluidActionResult.isSuccess()) {
                 if (tile instanceof BlockEntityBase) {
                     ((BlockEntityBase)tile).setDispatchable();
