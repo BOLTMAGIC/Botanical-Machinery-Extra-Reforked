@@ -34,7 +34,6 @@ import net.minecraftforge.client.extensions.common.IClientItemExtensions;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.fluids.FluidActionResult;
 import net.minecraftforge.fluids.FluidUtil;
-import org.jetbrains.annotations.NotNull;
 import org.moddingx.libx.base.tile.BlockEntityBase;
 import org.moddingx.libx.base.tile.MenuBlockBE;
 import org.moddingx.libx.block.RotationShape;
@@ -46,6 +45,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.function.Consumer;
 
+@SuppressWarnings("deprecation")
 public class BlockApothecaryUltimate extends MenuBlockBE<BlockEntityApothecaryUltimate, ContainerApothecaryUltimate> {
     public static final RotationShape SHAPE;
 
@@ -57,9 +57,7 @@ public class BlockApothecaryUltimate extends MenuBlockBE<BlockEntityApothecaryUl
     public void registerClient(SetupContext ctx) {
         ItemStackRenderer.addRenderBlock(this.getBlockEntityType(), true);
         MenuScreens.register(ModBlocks.ultimateApothecary.menu, ScreenApothecaryUltimate::new);
-        BlockEntityRenderers.register(this.getBlockEntityType(), (context) -> {
-            return new RenderApothecaryUltimate();
-        });
+        BlockEntityRenderers.register(this.getBlockEntityType(), (context) -> new RenderApothecaryUltimate());
     }
 
     @OnlyIn(Dist.CLIENT)
@@ -72,7 +70,8 @@ public class BlockApothecaryUltimate extends MenuBlockBE<BlockEntityApothecaryUl
         if (!level.isClientSide) {
             BlockEntity tile = level.getBlockEntity(pos);
             ItemStack held = player.getMainHandItem();
-            FluidActionResult fluidActionResult = FluidUtil.tryEmptyContainer(held, tile.getCapability(ForgeCapabilities.FLUID_HANDLER, null).orElse( null), 1000, player, true);
+            assert tile != null;
+            @SuppressWarnings("DataFlowIssue") FluidActionResult fluidActionResult = FluidUtil.tryEmptyContainer(held, tile.getCapability(ForgeCapabilities.FLUID_HANDLER, null).orElse( null), 1000, player, true);
             if (fluidActionResult.isSuccess()) {
                 if (tile instanceof BlockEntityBase) {
                     ((BlockEntityBase)tile).setDispatchable();

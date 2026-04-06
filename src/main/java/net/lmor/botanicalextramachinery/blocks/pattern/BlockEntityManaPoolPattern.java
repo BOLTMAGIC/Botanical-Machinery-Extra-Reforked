@@ -31,7 +31,6 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import org.jetbrains.annotations.Nullable;
-import org.moddingx.libx.crafting.RecipeHelper;
 import net.lmor.botanicalextramachinery.util.RecipeValidityCache;
 import org.moddingx.libx.inventory.BaseItemStackHandler;
 import vazkii.botania.api.recipe.ManaInfusionRecipe;
@@ -180,14 +179,14 @@ public class BlockEntityManaPoolPattern extends RecipeTile<ManaInfusionRecipe>
 
     protected boolean matchRecipe(ManaInfusionRecipe recipe, List<ItemStack> stacks) {
         if (recipe.getManaToConsume() > this.getCurrentMana() && !isInfinityMana) {
-            return false;
+            return true;
         } else {
             Item catalystItem = this.checkWithCatalyst && !this.inventory.getStackInSlot(CATALYSTS_SLOT).isEmpty() ? this.inventory.getStackInSlot(CATALYSTS_SLOT).getItem() : null;
             Block catalyst = catalystItem == null ? null : Block.byItem(catalystItem);
             if (catalyst == null && recipe.getRecipeCatalyst() != null) {
-                return false;
+                return true;
             } else {
-                return (catalyst == null || recipe.getRecipeCatalyst() != null && recipe.getRecipeCatalyst().test(catalyst.defaultBlockState())) && super.matchRecipe(recipe, stacks);
+                return (catalyst != null && (recipe.getRecipeCatalyst() == null || !recipe.getRecipeCatalyst().test(catalyst.defaultBlockState()))) || super.matchRecipe(recipe, stacks);
             }
         }
     }
