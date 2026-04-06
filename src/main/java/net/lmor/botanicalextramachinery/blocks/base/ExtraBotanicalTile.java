@@ -66,13 +66,7 @@ public abstract class ExtraBotanicalTile extends BlockEntityBase implements Mana
     protected abstract Predicate<Integer> getExtracts(Supplier<IItemHandlerModifiable> var1);
 
     protected BiPredicate<Integer, ItemStack> getInserts(Supplier<IItemHandlerModifiable> inventory) {
-        // Default behavior: if the mana pool is full, disallow all inserts to prevent external systems
-        // from inserting fuel/inputs that would be consumed while mana can't be stored (voiding items).
-        // If pool is not full, return null so that the inventory's own validators handle inserts.
-        return (slot, stack) -> {
-            if (this.isFull()) return false;
-            return true;
-        };
+        return null;
     }
 
     @Nonnull
@@ -90,35 +84,11 @@ public abstract class ExtraBotanicalTile extends BlockEntityBase implements Mana
 
     @Nonnull
     public <X> LazyOptional<X> getCapability(@Nonnull Capability<X> cap, Direction direction) {
-        // If the tile is full, do not expose the item handler capability externally. This prevents
-        // automation (AE2, hoppers, etc.) from inserting items that would be consumed while mana
-        // cannot be stored (which causes voiding).
         if (!this.remove && cap == ForgeCapabilities.ITEM_HANDLER) {
-            if (this.isFull()) {
-                return LazyOptional.empty();
-            }
             return this.capability.cast();
-        }
-
-        // Do not expose the MANA_RECEIVER capability when full to prevent external mods from inserting mana.
-        if (!this.remove && cap == BotaniaForgeCapabilities.MANA_RECEIVER) {
-            if (this.isFull()) {
-                return LazyOptional.empty();
-            }
-            // still expose the capability as the tile implements ManaPool
-            return LazyOptional.of(() -> (net.minecraftforge.common.capabilities.ICapabilityProvider) this).cast();
-        }
-
-        else {
-            return this.remove || !this.actAsMana() || cap != BotaniaForgeCapabilities.MANA_RECEIVER && cap != BotaniaForgeCapabilities.SPARK_ATTACHABLE ? DistExecutor.unsafeRunForDist(() -> {
-                return () -> {
-                    return !this.remove && this.actAsMana() && cap == BotaniaForgeClientCapabilities.WAND_HUD ? LazyOptional.of(() -> {
-                        return this;
-                    }).cast() : super.getCapability(cap, direction);};}, () -> {
-                return () -> {
-                    return super.getCapability(cap, direction);}
-                        ;}
-            ) : LazyOptional.of(() -> {return this;}).cast();
+        } else {
+            return this.remove || !this.actAsMana() || cap != BotaniaForgeCapabilities.MANA_RECEIVER && cap != BotaniaForgeCapabilities.SPARK_ATTACHABLE ? DistExecutor.unsafeRunForDist(() -> () -> !this.remove && this.actAsMana() && cap == BotaniaForgeClientCapabilities.WAND_HUD ? LazyOptional.of(() -> this).cast() : super.getCapability(cap, direction), () -> () -> super.getCapability(cap, direction)
+            ) : LazyOptional.of(() -> this).cast();
         }
     }
 
@@ -183,9 +153,10 @@ public abstract class ExtraBotanicalTile extends BlockEntityBase implements Mana
         if (!this.actAsMana()) {
             return null;
         } else {
+            assert this.level != null;
             List<Entity> sparks = this.level.getEntitiesOfClass(Entity.class, new AABB(this.worldPosition.above(), this.worldPosition.above().offset(1, 1, 1)), Predicates.instanceOf(SparkEntity.class));
             if (sparks.size() == 1) {
-                Entity entity = (Entity)sparks.get(0);
+                Entity entity = sparks.get(0);
                 return (ManaSpark)entity;
             }
         }
@@ -194,7 +165,7 @@ public abstract class ExtraBotanicalTile extends BlockEntityBase implements Mana
     }
 
     public boolean areIncomingTranfersDone() {
-        return !this.actAsMana() || this.isFull();
+        return !this.actAsMana();
     }
 
     public boolean isFull() {
@@ -202,13 +173,6 @@ public abstract class ExtraBotanicalTile extends BlockEntityBase implements Mana
     }
 
     public void receiveMana(int i) {
-        // If this is an incoming (positive) mana transfer and the pool is already full, ignore it.
-        // This prevents external systems from voiding mana by trying to push more than available capacity.
-        if (i > 0 && this.isFull()) {
-            return;
-        }
-
-
         int old = this.getCurrentMana();
         this.mana = Math.max(0, Math.min(this.getCurrentMana() + i, this.getMaxMana()));
         if (old != this.getCurrentMana()) {
@@ -218,8 +182,7 @@ public abstract class ExtraBotanicalTile extends BlockEntityBase implements Mana
     }
 
     public boolean canReceiveManaFromBursts() {
-        // Allow burst transfers only if there is available space
-        return !this.isFull();
+        return true;
     }
 
     public int getCurrentMana() {

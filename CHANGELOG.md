@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.1.2.9.5 — 2026-04-06
+### Fixed
+- Fixed machines not getting mana and don't auto output items to the ME system.
+
 ## v0.1.2.9.4 — 2026-03-12
 
 ### Changed
