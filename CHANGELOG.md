@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.1.2.9.6 — 2026-04-26
+
+### Fixed
+- Automatic filling of Daisy inventories (Base / Upgraded / Advanced / Ultimate) via pipes / hoppers / AE: the insert predicate was adjusted so external systems can insert into empty slots while slots currently processing remain protected.
+- AE export and automatic output of finished items remain unchanged: finished items are still automatically exported to the AE network; hoppers/pipes by default can only extract finished slots.
+
 ## v0.1.2.9.5 — 2026-04-06
 ### Fixed
 - Fixed machines not getting mana and don't auto output items to the ME system.
