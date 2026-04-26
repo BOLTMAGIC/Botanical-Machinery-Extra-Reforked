@@ -50,6 +50,7 @@ import vazkii.botania.common.block.BotaniaBlocks;
 import vazkii.botania.common.crafting.BotaniaRecipeTypes;
 
 import javax.annotation.Nonnull;
+
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -85,11 +86,15 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
                                    SettingPattern settingPattern, int... slotUpgrade) {
         super(type, pos, state);
 
-        if (slotUpgrade.length != 0){
+        if (slotUpgrade.length != 0) {
             SLOT_UPGRADE = slotUpgrade[0];
             inventoryUpgrade = BaseItemStackHandler.builder(SLOT_UPGRADE + 1)
                     .validator(stack -> stack.getItem() == ModItems.catalystStoneInfinity.asItem() || stack.getItem() == ModItems.catalystWoodInfinity.asItem(), SLOT_UPGRADE)
-                    .slotLimit(1, SLOT_UPGRADE).output().contentsChanged(() -> {this.setChanged();this.setDispatchable();this.updateUpgradeSlot();})
+                    .slotLimit(1, SLOT_UPGRADE).output().contentsChanged(() -> {
+                        this.setChanged();
+                        this.setDispatchable();
+                        this.updateUpgradeSlot();
+                    })
                     .build();
         }
 
@@ -112,7 +117,8 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
         inventory = new InventoryHandler();
         workingTicks = new int[this.countSlotInventory];
 
-        BiPredicate<Integer, ItemStack> insertPredicate = (slot, stack) -> this.workingTicks[slot] < 0;
+        BiPredicate<Integer, ItemStack> insertPredicate = (slot, stack) ->
+                this.inventory.getStackInSlot(slot).isEmpty() || this.workingTicks[slot] < 0;
         this.lazyInventory = ItemCapabilities.create(this.inventory, null, insertPredicate).cast();
         this.hopperInventory = ItemCapabilities.create(this.inventory, slot -> this.workingTicks[slot] < 0, insertPredicate).cast();
 
@@ -123,10 +129,11 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
     public void tick() {
         boolean hasSpawnedParticles = false;
 
-        for(int i = 0; i < this.countSlotInventory; ++i) {
+        for (int i = 0; i < this.countSlotInventory; ++i) {
             if (!this.inventory.getStackInSlot(i).isEmpty() &&
                     (this.inventory.getStackInSlot(i).getItem() == BotaniaBlocks.livingrock.asItem() ||
-                            this.inventory.getStackInSlot(i).getItem() == BotaniaBlocks.livingwoodLog.asItem())) continue;
+                            this.inventory.getStackInSlot(i).getItem() == BotaniaBlocks.livingwoodLog.asItem()))
+                continue;
 
             PureDaisyRecipe recipe = this.getRecipe(i);
 
@@ -148,10 +155,10 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
                     }
                 } else if (!hasSpawnedParticles && LibXClientConfig.RenderingVisualContent.all && this.setting.getConfigBoolean("renderingDaisy")) {
                     hasSpawnedParticles = true;
-                    double x = (double)this.worldPosition.getX() + Math.random();
-                    double y = (double)this.worldPosition.getY() + Math.random() + 0.25;
-                    double z = (double)this.worldPosition.getZ() + Math.random();
-                    WispParticleData data = WispParticleData.wisp((float)Math.random() / 2.0F, 1.0F, 1.0F, 1.0F);
+                    double x = (double) this.worldPosition.getX() + Math.random();
+                    double y = (double) this.worldPosition.getY() + Math.random() + 0.25;
+                    double z = (double) this.worldPosition.getZ() + Math.random();
+                    WispParticleData data = WispParticleData.wisp((float) Math.random() / 2.0F, 1.0F, 1.0F, 1.0F);
                     this.level.addParticle(data, x, y, z, 0.0, 0.0, 0.0);
                 }
             } else if (this.workingTicks[i] < 0 && !this.inventory.getStackInSlot(i).isEmpty()) {
@@ -163,7 +170,7 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
 
         if (this.level != null && !this.level.isClientSide) {
 
-            if (!this.getMainNode().isReady()){
+            if (!this.getMainNode().isReady()) {
                 this.getMainNode().create(this.level, this.getBlockPos());
             }
 
@@ -186,7 +193,7 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
                     ItemStack s = this.inventory.getStackInSlot(slot);
                     int limit = this.inventory.getSlotLimit(slot);
                     if (s.isEmpty()) availableCapacity += limit;
-                    else if (s.getItem() instanceof BlockItem && ((BlockItem)s.getItem()).getBlock() == Blocks.SNOW_BLOCK) {
+                    else if (s.getItem() instanceof BlockItem && ((BlockItem) s.getItem()).getBlock() == Blocks.SNOW_BLOCK) {
                         availableCapacity += Math.max(0, limit - s.getCount());
                     }
                 }
@@ -211,7 +218,7 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
                                     waterAvailable -= 1000 * put;
                                     totalCreated += put;
                                 }
-                            } else if (s.getItem() instanceof BlockItem && ((BlockItem)s.getItem()).getBlock() == Blocks.SNOW_BLOCK) {
+                            } else if (s.getItem() instanceof BlockItem && ((BlockItem) s.getItem()).getBlock() == Blocks.SNOW_BLOCK) {
                                 int canAdd = limit - s.getCount();
                                 if (canAdd > 0) {
                                     int put = Math.min(multiplier, canAdd);
@@ -253,28 +260,28 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
         updateUpgradeSlot();
     }
 
-    private void updateUpgradeSlot(){
+    private void updateUpgradeSlot() {
         if (this.inventoryUpgrade != null && this.inventoryUpgrade.getStackInSlot(0).isEmpty()) return;
 
-        for (int i=0; i < this.countSlotInventory; i++){
+        for (int i = 0; i < this.countSlotInventory; i++) {
             activeUpgradeSlot(i);
         }
     }
 
-    private void activeUpgradeSlot(int slot){
+    private void activeUpgradeSlot(int slot) {
         if (!this.inventory.getStackInSlot(slot).isEmpty()) return;
 
-        if (this.inventoryUpgrade != null && !this.inventoryUpgrade.getStackInSlot(0).isEmpty()){
+        if (this.inventoryUpgrade != null && !this.inventoryUpgrade.getStackInSlot(0).isEmpty()) {
             ItemStack upgradeItem = this.inventoryUpgrade.getStackInSlot(SLOT_UPGRADE);
             ItemStack setSlotItem = ItemStack.EMPTY;
 
-            if (upgradeItem.getItem() == ModItems.catalystStoneInfinity.asItem()){
+            if (upgradeItem.getItem() == ModItems.catalystStoneInfinity.asItem()) {
                 setSlotItem = new ItemStack(Blocks.STONE).copy();
-            } else if (upgradeItem.getItem() == ModItems.catalystWoodInfinity.asItem()){
+            } else if (upgradeItem.getItem() == ModItems.catalystWoodInfinity.asItem()) {
                 setSlotItem = new ItemStack(Blocks.OAK_LOG).copy();
             }
 
-            if (!setSlotItem.isEmpty()){
+            if (!setSlotItem.isEmpty()) {
                 setSlotItem.setCount(setting.getConfigInt("sizeSlots"));
                 this.inventory.setStackInSlot(slot, setSlotItem.copy());
             }
@@ -293,7 +300,7 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
         ItemStack stack = this.inventory.getStackInSlot(slot);
 
         if (stack.getItem() instanceof BlockItem) {
-            state = ((BlockItem)stack.getItem()).getBlock().defaultBlockState();
+            state = ((BlockItem) stack.getItem()).getBlock().defaultBlockState();
         }
         return state;
     }
@@ -320,7 +327,7 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
         return this.inventoryUpgrade;
     }
 
-    public List<ItemStack> getUpgrades(){
+    public List<ItemStack> getUpgrades() {
         List<ItemStack> upgrade = new ArrayList<>();
         upgrade.add(new ItemStack(ModItems.catalystWoodInfinity));
         upgrade.add(new ItemStack(ModItems.catalystStoneInfinity));
@@ -347,7 +354,7 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
         if (nbt.contains("workingTicks")) {
             this.workingTicks = nbt.getIntArray("workingTicks");
         }
-        if (nbt.contains("inv")){
+        if (nbt.contains("inv")) {
             this.getInventoryUpgrade().deserializeNBT(nbt.getCompound("inv"));
         }
         if (nbt.contains("tank")) {
@@ -371,7 +378,7 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
         nbt.put("invBase", this.inventory.serializeNBT());
         nbt.putIntArray("workingTicks", this.workingTicks);
         this.getMainNode().saveToNBT(nbt);
-        if (this.inventoryUpgrade != null){
+        if (this.inventoryUpgrade != null) {
             nbt.put("inv", this.getInventoryUpgrade().serializeNBT());
         }
         CompoundTag tankNbt = this.tank.getFluid().writeToNBT(new CompoundTag());
@@ -388,7 +395,7 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
             if (nbt.contains("workingTicks")) {
                 this.workingTicks = nbt.getIntArray("workingTicks");
             }
-            if (nbt.contains("inv")){
+            if (nbt.contains("inv")) {
                 this.getInventoryUpgrade().deserializeNBT(nbt.getCompound("inv"));
             }
             if (nbt.contains("tank")) {
@@ -413,7 +420,7 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
             CompoundTag nbt = super.getUpdateTag();
             nbt.put("invBase", this.inventory.serializeNBT());
             nbt.putIntArray("workingTicks", this.workingTicks);
-            if (this.inventoryUpgrade != null){
+            if (this.inventoryUpgrade != null) {
                 nbt.put("inv", this.getInventoryUpgrade().serializeNBT());
             }
             CompoundTag tankNbt = this.tank.getFluid().writeToNBT(new CompoundTag());
@@ -423,7 +430,7 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
         }
     }
 
-    public BlockEntity getBlockEntity(){
+    public BlockEntity getBlockEntity() {
         return this;
     }
 
@@ -433,7 +440,7 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
         }
 
         public void setStackInSlot(int slot, @Nonnull ItemStack stack) {
-            if (recipeOutputItem){
+            if (recipeOutputItem) {
                 stack.setCount(inventory.getStackInSlot(slot).getCount());
             }
             this.stacks.set(slot, stack);
@@ -445,24 +452,27 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
 
         @Nonnull
         public ItemStack insertItem(int slot, @Nonnull ItemStack stack, boolean simulate) {
-            // Prevent external inserts into working slots regardless of ItemCapabilities callers.
-            if (slot >= 0 && slot < workingTicks.length && workingTicks[slot] >= 0) {
-                return stack;
+            // Allow insertion into empty slots even if workingTicks is >= 0.
+            // Only block insertion if the slot is occupied AND the slot is currently working.
+            if (slot >= 0 && slot < workingTicks.length) {
+                if (!this.getStackInSlot(slot).isEmpty() && workingTicks[slot] >= 0) {
+                    return stack;
+                }
             }
             return super.insertItem(slot, stack, simulate);
         }
 
         @Nonnull
         public ItemStack extractItem(int slot, int amount, boolean simulate) {
-            if (getMainNode() != null && getMainNode().getNode() != null && getMainNode().isOnline()){
+            if (getMainNode() != null && getMainNode().getNode() != null && getMainNode().isOnline()) {
                 ItemStack stackInSlot = getInventory().getStackInSlot(slot);
                 if (!stackInSlot.isEmpty()) {
-                      int getCountExport = Math.toIntExact(Objects.requireNonNull(getMainNode().getGrid()).getStorageService().getInventory().insert(AEItemKey.of(stackInSlot), stackInSlot.getCount(), Actionable.MODULATE, IActionSource.empty()));
-                      if (getCountExport > 0) {
-                          stackInSlot.shrink(getCountExport);
-                          inventory.setStackInSlot(slot, stackInSlot);
-                      }
-                  }
+                    int getCountExport = Math.toIntExact(Objects.requireNonNull(getMainNode().getGrid()).getStorageService().getInventory().insert(AEItemKey.of(stackInSlot), stackInSlot.getCount(), Actionable.MODULATE, IActionSource.empty()));
+                    if (getCountExport > 0) {
+                        stackInSlot.shrink(getCountExport);
+                        inventory.setStackInSlot(slot, stackInSlot);
+                    }
+                }
             }
             return super.extractItem(slot, amount, simulate);
         }
@@ -472,7 +482,7 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
         }
 
         public boolean isItemValid(int slot, @Nonnull ItemStack stack) {
-            return !stack.isEmpty() && stack.getItem() instanceof BlockItem && BlockEntityDaisyPattern.this.getRecipe(((BlockItem)stack.getItem()).getBlock().defaultBlockState()) != null;
+            return !stack.isEmpty() && stack.getItem() instanceof BlockItem && BlockEntityDaisyPattern.this.getRecipe(((BlockItem) stack.getItem()).getBlock().defaultBlockState()) != null;
         }
 
         protected void onContentsChanged(int slot) {
@@ -484,10 +494,10 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
         }
     }
 
-    public void drops(){
-        if (this.inventoryUpgrade != null && !this.inventoryUpgrade.getStackInSlot(0).isEmpty()){
+    public void drops() {
+        if (this.inventoryUpgrade != null && !this.inventoryUpgrade.getStackInSlot(0).isEmpty()) {
             assert this.level != null;
-            ItemEntity ie = new ItemEntity(this.level, (double)this.worldPosition.getX() + 0.5, (double)this.worldPosition.getY() + 0.7, (double)this.worldPosition.getZ() + 0.5, this.inventoryUpgrade.getStackInSlot(0).copy());
+            ItemEntity ie = new ItemEntity(this.level, (double) this.worldPosition.getX() + 0.5, (double) this.worldPosition.getY() + 0.7, (double) this.worldPosition.getZ() + 0.5, this.inventoryUpgrade.getStackInSlot(0).copy());
             this.level.addFreshEntity(ie);
         }
     }
@@ -503,16 +513,13 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
 
     protected Item getItemFromBlockEntity() {
         BlockEntity blockEntity = this.getBlockEntity();
-        if (blockEntity instanceof BlockEntityDaisyBase){
+        if (blockEntity instanceof BlockEntityDaisyBase) {
             return ModBlocks.baseDaisy.asItem();
-        }
-        else if (blockEntity instanceof BlockEntityDaisyUpgraded){
+        } else if (blockEntity instanceof BlockEntityDaisyUpgraded) {
             return ModBlocks.upgradedDaisy.asItem();
-        }
-        else if (blockEntity instanceof BlockEntityDaisyAdvanced){
+        } else if (blockEntity instanceof BlockEntityDaisyAdvanced) {
             return ModBlocks.advancedDaisy.asItem();
-        }
-        else {
+        } else {
             return ModBlocks.ultimateDaisy.asItem();
         }
     }
@@ -557,7 +564,7 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
         }
     }
 
-    private void exportResultsItemsME(){
+    private void exportResultsItemsME() {
         for (int slot = 0; slot < this.countSlotInventory; slot++) {
             ItemStack stackInSlot = this.inventory.getStackInSlot(slot);
             if (!stackInSlot.isEmpty()) {
