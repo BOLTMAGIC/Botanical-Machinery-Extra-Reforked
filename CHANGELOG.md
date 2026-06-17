@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.1.2.9.8 — 2026-06-17
+### Fixed
+- Mana Infuser now correctly detects and uses MythicBotany's infuser RecipeType (optional) via robust reflection.
+
+### Changed
+- Set superclass RecipeType reflectively so recipes are found; added logging to help debug recipe matching.
+
+## v0.1.2.9.7 — 2026-04-26
+### Fixed
+- Changed Recipe for the catalyst_mana_infinity from crimson to mazarine
+
 ## v0.1.2.9.6 — 2026-04-26
 
 ### Fixed

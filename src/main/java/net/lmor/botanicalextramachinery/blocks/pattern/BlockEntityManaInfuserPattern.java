@@ -36,15 +36,17 @@ import org.moddingx.libx.crafting.RecipeHelper;
 import org.moddingx.libx.inventory.BaseItemStackHandler;
 
 import javax.annotation.Nonnull;
+import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class BlockEntityManaInfuserPattern extends WorkingTile<net.minecraft.world.item.crafting.Recipe<net.minecraft.world.Container>>
         implements IInWorldGridNodeHost, IGridConnectedBlockEntity {
     public static final int MAX_MANA_PER_TICK = LibXServerConfig.ManaInfuserSettings.workingDuration;
 
-    private final int FIRST_INPUT_SLOT;
-    private final int LAST_INPUT_SLOT;
     private final int FIRST_OUTPUT_SLOT;
     private final int LAST_OUTPUT_SLOT;
     private int UPGRADE_SLOT_1 = -1;
@@ -59,12 +61,15 @@ public class BlockEntityManaInfuserPattern extends WorkingTile<net.minecraft.wor
 
     private boolean isInfinityMana = false;
 
+    private static final Logger LOGGER = LogManager.getLogger();
+
     public BlockEntityManaInfuserPattern(BlockEntityType<?> type, BlockPos pos, BlockState state, int manaCapacity, int countCraft, int[] slots, SettingPattern settingPattern) {
         // Call super first. Use Botania's MANA_INFUSION_TYPE as a safe default for construction.
+        //noinspection unchecked,rawtypes
         super(type, (net.minecraft.world.item.crafting.RecipeType) vazkii.botania.common.crafting.BotaniaRecipeTypes.MANA_INFUSION_TYPE, pos, state, manaCapacity, slots[0], slots[2], countCraft);
 
-        FIRST_INPUT_SLOT = slots[0];
-        LAST_INPUT_SLOT = slots[1];
+        int FIRST_INPUT_SLOT = slots[0];
+        int LAST_INPUT_SLOT = slots[1];
         FIRST_OUTPUT_SLOT = slots[2];
         LAST_OUTPUT_SLOT = slots[3];
 
@@ -78,23 +83,31 @@ public class BlockEntityManaInfuserPattern extends WorkingTile<net.minecraft.wor
         // Try to obtain the MythicBotany infuser RecipeType via reflection. If not available, fall back
         // to Botania's infusion type. We do this after calling super because super must be the first
         // statement in the constructor.
-        net.minecraft.world.item.crafting.RecipeType<?> infuserType = vazkii.botania.common.crafting.BotaniaRecipeTypes.MANA_INFUSION_TYPE;
+        final net.minecraft.world.item.crafting.RecipeType<?> finalInfuserType = findInfuserRecipeType();
+
+        // If we found a different recipe type (e.g. MythicBotany's), set the parent RecipeTile.recipeType
+        // reflectively so that recipe lookups in the superclass use the correct RecipeType.
         try {
-            Class<?> modRecipes = Class.forName("mythicbotany.register.ModRecipes");
-            java.lang.reflect.Field field = modRecipes.getField("infuser");
-            Object val = field.get(null);
-            if (val instanceof net.minecraft.world.item.crafting.RecipeType) {
-                infuserType = (net.minecraft.world.item.crafting.RecipeType<?>) val;
-            }
+            java.lang.reflect.Field f = net.lmor.botanicalextramachinery.blocks.base.RecipeTile.class.getDeclaredField("recipeType");
+            f.setAccessible(true);
+            // suppress unchecked warning: runtime type fits RecipeType<?>
+            f.set(this, finalInfuserType);
         } catch (Throwable ignored) {
+            // If reflection fails, we keep the original Botania recipeType passed to super and hope validation covers it.
         }
 
-        final net.minecraft.world.item.crafting.RecipeType<?> finalInfuserType = infuserType;
+        // Log which recipe type is being used to help debugging recipe matching issues
+        try {
+            if (LOGGER.isDebugEnabled()) LOGGER.debug("BlockEntityManaInfuserPattern using RecipeType: {} (class: {})", finalInfuserType, finalInfuserType.getClass().getName());
+            if (finalInfuserType != vazkii.botania.common.crafting.BotaniaRecipeTypes.MANA_INFUSION_TYPE) {
+                LOGGER.info("BlockEntityManaInfuserPattern: detected non-Botania infuser RecipeType: {}", finalInfuserType);
+            }
+        } catch (Throwable ignored) {}
 
         if (UPGRADE_SLOT_1 != -1 && UPGRADE_SLOT_2 != -1){
             this.inventory = BaseItemStackHandler.builder(LAST_OUTPUT_SLOT + 1)
-                    .validator((stack) -> this.level != null && RecipeHelper.isItemValidInput(this.level.getRecipeManager(), (net.minecraft.world.item.crafting.RecipeType) finalInfuserType, stack), Range.closedOpen(FIRST_INPUT_SLOT, LAST_INPUT_SLOT + 1))
-                    .validator((stack) -> {return (stack.getItem() == ModItems.catalystSpeed.asItem() || stack.getItem() == ModItems.catalystManaInfinity.asItem());}, UPGRADE_SLOT_1, UPGRADE_SLOT_2)
+                    .validator((stack) -> this.level != null && RecipeHelper.isItemValidInput(this.level.getRecipeManager(), finalInfuserType, stack), Range.closedOpen(FIRST_INPUT_SLOT, LAST_INPUT_SLOT + 1))
+                    .validator((stack) -> (stack.getItem() == ModItems.catalystSpeed.asItem() || stack.getItem() == ModItems.catalystManaInfinity.asItem()), UPGRADE_SLOT_1, UPGRADE_SLOT_2)
                     .output(Range.closedOpen(FIRST_OUTPUT_SLOT, LAST_OUTPUT_SLOT + 1))
                     .slotLimit(1, UPGRADE_SLOT_1, UPGRADE_SLOT_2)
                     .contentsChanged(() -> { this.setChanged();this.setDispatchable();this.needsRecipeUpdate();})
@@ -102,13 +115,73 @@ public class BlockEntityManaInfuserPattern extends WorkingTile<net.minecraft.wor
         }
         else {
             this.inventory = BaseItemStackHandler.builder(LAST_OUTPUT_SLOT + 1)
-                    .validator((stack) -> this.level != null && RecipeHelper.isItemValidInput(this.level.getRecipeManager(), (net.minecraft.world.item.crafting.RecipeType) finalInfuserType, stack), Range.closedOpen(FIRST_INPUT_SLOT, LAST_INPUT_SLOT + 1))
+                    .validator((stack) -> this.level != null && RecipeHelper.isItemValidInput(this.level.getRecipeManager(), finalInfuserType, stack), Range.closedOpen(FIRST_INPUT_SLOT, LAST_INPUT_SLOT + 1))
                     .output(Range.closedOpen(FIRST_OUTPUT_SLOT, LAST_OUTPUT_SLOT + 1))
                     .contentsChanged(() -> { this.setChanged();this.setDispatchable();this.needsRecipeUpdate();})
                     .build();
         }
 
         this.setChangedQueued = false;
+    }
+
+    /**
+     * Try several known MythicBotany class/field/method names to retrieve the infuser RecipeType via reflection.
+     * If none found, return Botania's default MANA_INFUSION_TYPE. Keeps MythicBotany optional at runtime.
+     */
+    private static net.minecraft.world.item.crafting.RecipeType<?> findInfuserRecipeType() {
+        net.minecraft.world.item.crafting.RecipeType<?> botaniaType = vazkii.botania.common.crafting.BotaniaRecipeTypes.MANA_INFUSION_TYPE;
+
+        String[] candidateClasses = new String[]{
+                "mythicbotany.register.ModRecipes",
+                "mythicbotany.ModRecipes",
+                "mythicbotany.init.ModRecipes",
+                "mythicbotany.common.register.ModRecipes"
+        };
+
+        String[] candidateFields = new String[]{"infuser", "INFUSER", "INFUSER_TYPE", "INFUSER_RECIPE_TYPE"};
+        String[] candidateMethods = new String[]{"infuser", "getInfuser", "getInfuserRecipeType", "infuserRecipeType"};
+
+        for (String clsName : candidateClasses) {
+            try {
+                Class<?> cls = Class.forName(clsName);
+                // try fields
+                for (String fName : candidateFields) {
+                    try {
+                        java.lang.reflect.Field f = cls.getField(fName);
+                        Object val = f.get(null);
+                        if (val instanceof net.minecraft.world.item.crafting.RecipeType) return (net.minecraft.world.item.crafting.RecipeType<?>) val;
+                    } catch (NoSuchFieldException nsf) {
+                        // try declared field (private)
+                        try {
+                            java.lang.reflect.Field f = cls.getDeclaredField(fName);
+                            f.setAccessible(true);
+                            Object val = f.get(null);
+                            if (val instanceof net.minecraft.world.item.crafting.RecipeType) return (net.minecraft.world.item.crafting.RecipeType<?>) val;
+                        } catch (Throwable ignored) {}
+                    } catch (Throwable ignored) {}
+                }
+
+                // try static methods
+                for (String mName : candidateMethods) {
+                    try {
+                        java.lang.reflect.Method m = cls.getMethod(mName);
+                        Object val = m.invoke(null);
+                        if (val instanceof net.minecraft.world.item.crafting.RecipeType) return (net.minecraft.world.item.crafting.RecipeType<?>) val;
+                    } catch (NoSuchMethodException nsme) {
+                        try {
+                            java.lang.reflect.Method m = cls.getDeclaredMethod(mName);
+                            m.setAccessible(true);
+                            Object val = m.invoke(null);
+                            if (val instanceof net.minecraft.world.item.crafting.RecipeType) return (net.minecraft.world.item.crafting.RecipeType<?>) val;
+                        } catch (Throwable ignored) {}
+                    } catch (Throwable ignored) {}
+                }
+            } catch (Throwable ignored) {
+                // class not present or other issue - try next candidate
+            }
+        }
+
+        return botaniaType;
     }
 
     //region Base
@@ -166,9 +239,7 @@ public class BlockEntityManaInfuserPattern extends WorkingTile<net.minecraft.wor
     }
 
     protected Predicate<Integer> getExtracts(Supplier<IItemHandlerModifiable> inventory) {
-        return (slot) -> {
-            return slot >= FIRST_OUTPUT_SLOT && slot <= LAST_OUTPUT_SLOT;
-        };
+        return (slot) -> slot >= FIRST_OUTPUT_SLOT && slot <= LAST_OUTPUT_SLOT;
     }
 
     @Nonnull
@@ -246,10 +317,9 @@ public class BlockEntityManaInfuserPattern extends WorkingTile<net.minecraft.wor
         }
     }
 
-    private Object setChangedAtEndOfTick(Level level) {
+    private void setChangedAtEndOfTick(Level level) {
         this.setChanged();
         this.setChangedQueued = false;
-        return null;
     }
 
     @Nullable
@@ -288,7 +358,7 @@ public class BlockEntityManaInfuserPattern extends WorkingTile<net.minecraft.wor
             ItemStack stackInSlot = this.inventory.getStackInSlot(slot);
 
             if (!stackInSlot.isEmpty()) {
-                int getCountExport = Math.toIntExact(this.getMainNode().getGrid().getStorageService().getInventory().insert(AEItemKey.of(stackInSlot), stackInSlot.getCount(), Actionable.MODULATE, IActionSource.empty()));
+                int getCountExport = Math.toIntExact(Objects.requireNonNull(this.getMainNode().getGrid()).getStorageService().getInventory().insert(AEItemKey.of(stackInSlot), stackInSlot.getCount(), Actionable.MODULATE, IActionSource.empty()));
 
                 if (getCountExport > 0) {
                     stackInSlot.shrink(getCountExport);
@@ -299,4 +369,14 @@ public class BlockEntityManaInfuserPattern extends WorkingTile<net.minecraft.wor
     }
     //endregion
 
+    @Override
+    protected boolean matchRecipe(net.minecraft.world.item.crafting.Recipe<net.minecraft.world.Container> recipe, java.util.List<net.minecraft.world.item.ItemStack> stacks) {
+        boolean noMatch = super.matchRecipe(recipe, stacks);
+        try {
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Testing recipe {}: matched={}, inputs={}", recipe.getId(), !noMatch, stacks);
+            }
+        } catch (Throwable ignored) {}
+        return noMatch;
+    }
 }

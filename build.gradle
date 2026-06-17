@@ -92,24 +92,26 @@ dependencies {
 
     annotationProcessor fg.deobf('org.moddingx:LibX:1.20.1-5.0.12')
 
-    implementation fg.deobf("curse.maven:botania-225643:5594997")
-    implementation fg.deobf("curse.maven:botanical-machinery-395617:5501388")
+    implementation fg.deobf("curse.maven:botania-225643:7982360")
+    implementation fg.deobf("curse.maven:botanical-machinery-395617:7910772")
     implementation fg.deobf("curse.maven:libx-412525:4947474")
-    implementation fg.deobf("curse.maven:patchouli-306770:4966125")
+    implementation fg.deobf("curse.maven:patchouli-306770:7731017")
     implementation fg.deobf("curse.maven:jei-238222:7920915")
-    implementation fg.deobf("curse.maven:curios-309927:5843594")
-    implementation fg.deobf("curse.maven:mythicbotany-400058:5101899")
-    implementation fg.deobf("curse.maven:applied-botanics-addon-610632:4904185")
+    implementation fg.deobf("curse.maven:curios-309927:6418456")
+    compileOnly fg.deobf("curse.maven:mythicbotany-400058:6702112")
+    runtimeOnly fg.deobf("curse.maven:mythicbotany-400058:6702112")
+    implementation fg.deobf("curse.maven:applied-botanics-addon-610632:7024180")
 
     //region For testing
     implementation fg.deobf("curse.maven:observable-509575:5643037")
     implementation fg.deobf("curse.maven:architectury-api-419699:5137938")
-    implementation fg.deobf("curse.maven:kotlin-for-forge-351264:5402061")
-    implementation fg.deobf("curse.maven:mekanism-268560:5919382")
+    implementation fg.deobf("curse.maven:kotlin-for-forge-351264:7291067")
+    implementation fg.deobf("curse.maven:mekanism-268560:6552911")
 
     //endregion
-    implementation fg.deobf("curse.maven:applied-energistics-2-223794:5641282")
+    implementation fg.deobf("curse.maven:applied-energistics-2-223794:7148487")
     runtimeOnly fg.deobf("appeng:appliedenergistics2-forge:15.2.13:api")
+    runtimeOnly fg.deobf("org.appliedenergistics:guideme:20.1.14")
 
     // EMI (recipe viewer) - compile against API;
     compileOnly fg.deobf("dev.emi:emi-forge:${emi_version}:api")
