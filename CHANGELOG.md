@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.1.3.0.2 — 2026-09-14
+### Fixed
+- fixed Autocrafting again
+
 ## v0.1.3.0.1 — 2026-08-30
 ### Fixed
 - Autocrafting: Fixed issue where input items were not fully consumed when ingredients were distributed across multiple input slots.

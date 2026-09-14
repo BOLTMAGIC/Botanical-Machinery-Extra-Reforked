@@ -120,8 +120,40 @@ public abstract class RecipeTile<T extends Recipe<Container>> extends ExtraBotan
 
                 this.countCraftPerRecipe = maxCountCraft(recipe.getIngredients().iterator());
 
-                // DISABLED: Output space check - let craftRecipe handle the actual extraction
-                // This can cause issues if it reduces countCraftPerRecipe incorrectly
+                if (recipe.getResultItem(this.level.registryAccess()).getCount() != 0){
+                    int remainingItemsToPlace;
+                    if (recipe.getResultItem(this.level.registryAccess()).getCount() != 0){
+                        remainingItemsToPlace = countCraftPerRecipe * recipe.getResultItem(this.level.registryAccess()).getCount();
+                    } else {
+                        remainingItemsToPlace = countCraftPerRecipe;
+                    }
+
+                    for (int slot = this.firstOutputSlot; slot < inventory.getSlots(); ++slot) {
+                        ItemStack slotStack = inventory.getStackInSlot(slot);
+
+                        if (slotStack.isEmpty() || slotStack == recipe.getResultItem(this.level.registryAccess())) {
+                            int maxStackSize = recipe.getResultItem(this.level.registryAccess()).getMaxStackSize();
+                            int currentStackSize = slotStack.getCount();
+                            int availableSpace = maxStackSize - currentStackSize;
+
+                            int itemsToPlaceInSlot = Math.min(remainingItemsToPlace, availableSpace);
+
+                            remainingItemsToPlace -= itemsToPlaceInSlot;
+
+                            if (remainingItemsToPlace <= 0) {
+                                break;
+                            }
+                        }
+                    }
+
+                    if (remainingItemsToPlace < countCraftPerRecipe * recipe.getResultItem(this.level.registryAccess()).getCount()) {
+                        this.countCraftPerRecipe -= remainingItemsToPlace / recipe.getResultItem(this.level.registryAccess()).getCount();
+
+                    } else if (remainingItemsToPlace >= countCraftPerRecipe * recipe.getResultItem(this.level.registryAccess()).getCount()) {
+                        this.recipe = null;
+                        return;
+                    }
+                }
 
                 if (recipe.getType() == BotaniaRecipeTypes.RUNE_TYPE) {
                     // collect all ingredient items and check for runes
@@ -197,31 +229,42 @@ public abstract class RecipeTile<T extends Recipe<Container>> extends ExtraBotan
             ingredients.add((Ingredient) iteratorRecipe.next());
         }
 
-        // Count how many of each ingredient we have available (cumulative across all slots)
-        Map<Ingredient, Integer> ingredientCounts = new HashMap<>();
+        // First, collect which items are actually available
+        Map<Item, Integer> availableItemCounts = new HashMap<>();
+        Set<Item> availableItems = new HashSet<>();
+        for (int slotIdx = this.firstInputSlot; slotIdx < this.firstOutputSlot; slotIdx++) {
+            ItemStack slotStack = this.getInventory().getStackInSlot(slotIdx);
+            if (!slotStack.isEmpty()) {
+                Item item = slotStack.getItem().asItem();
+                availableItems.add(item);
+                availableItemCounts.merge(item, slotStack.getCount(), Integer::sum);
+            }
+        }
 
+        // For each ingredient, determine which available item fulfills it and count how many times it's needed
+        Map<Item, Integer> itemRequirements = new HashMap<>();
         for (Ingredient ingredient : ingredients) {
-            int totalAvailable = 0;
-
-            // Sum up all matching items across ALL input slots
-            for (int slotIdx = this.firstInputSlot; slotIdx < this.firstOutputSlot; slotIdx++) {
-                ItemStack slotStack = this.getInventory().getStackInSlot(slotIdx);
-                if (!slotStack.isEmpty() && ingredient.test(slotStack)) {
-                    totalAvailable += slotStack.getCount();
+            boolean found = false;
+            for (Item availableItem : availableItems) {
+                if (ingredient.test(new ItemStack(availableItem))) {
+                    itemRequirements.merge(availableItem, 1, Integer::sum);
+                    found = true;
+                    break;
                 }
             }
-
-            ingredientCounts.put(ingredient, totalAvailable);
+            if (!found) {
+                return 0;  // Missing ingredient
+            }
         }
 
         // Find the minimum possible crafts (bottleneck ingredient)
         int minCraft = Integer.MAX_VALUE;
-        for (Ingredient ingredient : ingredients) {
-            int available = ingredientCounts.getOrDefault(ingredient, 0);
-            if (available == 0) {
-                return 0;  // Missing ingredient
-            }
-            minCraft = Math.min(minCraft, available);
+        for (Item item : itemRequirements.keySet()) {
+            int available = availableItemCounts.getOrDefault(item, 0);
+            int required = itemRequirements.get(item);
+
+            int possibleCrafts = available / required;
+            minCraft = Math.min(minCraft, possibleCrafts);
         }
 
         // Limit by max craft count
@@ -245,21 +288,39 @@ public abstract class RecipeTile<T extends Recipe<Container>> extends ExtraBotan
                 List<Ingredient> ingredients = this.recipe.getIngredients();
                 int nIngredients = ingredients.size();
 
-                // Use the pre-calculated countCraftPerRecipe which was validated in updateRecipe()
-                int countItemCraft = this.countCraftPerRecipe;
+                // Determine which available item fulfills each ingredient, tracking actual extraction
+                Map<Item, Integer> itemRequirements = new HashMap<>();
+                Map<Item, Integer> extractedPerItem = new HashMap<>();
 
+                // First pass: determine requirements based on available items
+                Set<Item> availableItems = new HashSet<>();
+                for (int slotIdx = this.firstInputSlot; slotIdx < this.firstOutputSlot; slotIdx++) {
+                    ItemStack slotStack = inventory.getStackInSlot(slotIdx);
+                    if (!slotStack.isEmpty()) {
+                        availableItems.add(slotStack.getItem().asItem());
+                    }
+                }
 
-                // Track actual minimum that can be extracted
-                int actualExtractedMin = Integer.MAX_VALUE;
+                for (Ingredient ingredient : ingredients) {
+                    boolean found = false;
+                    for (Item availableItem : availableItems) {
+                        if (ingredient.test(new ItemStack(availableItem))) {
+                            itemRequirements.merge(availableItem, 1, Integer::sum);
+                            found = true;
+                            break;
+                        }
+                    }
+                }
 
-                // SINGLE PASS: Extract and track actual amounts
+                // Second pass: extract items for each ingredient
+                // Must continue across slots if one slot doesn't have enough items
                 for (int ingIdx = 0; ingIdx < nIngredients; ingIdx++) {
                     Ingredient ingredient = ingredients.get(ingIdx);
                     Item[] simple = this.cachedIngredientItems == null ? null : this.cachedIngredientItems.get(ingIdx);
 
-                    int totalExtractedForIngredient = 0;
+                    int stillNeeded = this.countCraftPerRecipe;
 
-                    for (int slot = this.firstInputSlot; slot < this.firstOutputSlot; ++slot) {
+                    for (int slot = this.firstInputSlot; slot < this.firstOutputSlot && stillNeeded > 0; ++slot) {
                         ItemStack cand = inventory.getStackInSlot(slot);
                         boolean matched = false;
                         if (simple != null) {
@@ -268,35 +329,30 @@ public abstract class RecipeTile<T extends Recipe<Container>> extends ExtraBotan
                         } else {
                             if (ingredient.test(cand)) matched = true;
                         }
-                        if (matched) {
-                            // Calculate how much we still need
-                            int stillNeeded = countItemCraft - totalExtractedForIngredient;
-                            if (stillNeeded <= 0) break;
 
-                            // Extract from this slot
+                        if (matched) {
+                            Item itemType = cand.getItem().asItem();
                             ItemStack extracted = inventory.extractItem(slot, stillNeeded, false);
                             if (!extracted.isEmpty()) {
-                                totalExtractedForIngredient += extracted.getCount();
+                                int extractedCount = extracted.getCount();
+                                stillNeeded -= extractedCount;
+                                extractedPerItem.merge(itemType, extractedCount, Integer::sum);
                                 consumedStacks.add(extracted);
                                 usedStacks.accept(extracted, slot);
-
-                                // If we got enough, stop searching for this ingredient
-                                if (totalExtractedForIngredient >= countItemCraft) {
-                                    break;
-                                }
                             }
+                            // Don't break - continue to next slot if we still need more
                         }
                     }
-
-                    if (totalExtractedForIngredient == 0) {
-                        actualExtractedMin = 0;
-                        break;
-                    }
-
-                    // Track what was actually extracted
-                    actualExtractedMin = Math.min(actualExtractedMin, totalExtractedForIngredient);
                 }
 
+                // Determine actual minimum that was extracted (considering per-item requirements)
+                int actualExtractedMin = Integer.MAX_VALUE;
+                for (Item item : itemRequirements.keySet()) {
+                    int required = itemRequirements.get(item);
+                    int extracted = extractedPerItem.getOrDefault(item, 0);
+                    int possible = extracted / required;
+                    actualExtractedMin = Math.min(actualExtractedMin, possible);
+                }
                 if (actualExtractedMin == Integer.MAX_VALUE) {
                     actualExtractedMin = 0;
                 }
@@ -305,9 +361,18 @@ public abstract class RecipeTile<T extends Recipe<Container>> extends ExtraBotan
                 if (actualExtractedMin > 0) {
                     List<ItemStack> results = this.resultItems(this.recipe, consumedStacks);
                     for (ItemStack result : results) {
-                        // Scale by actual extracted, not planned
-                        result.setCount(result.getCount() * actualExtractedMin);
-                        this.putIntoOutputOrDrop(result.copy());
+                        int actualCount = result.getCount() * actualExtractedMin;
+
+                        // Split into multiple stacks if needed (max stack size limit)
+                        int remaining = actualCount;
+                        while (remaining > 0) {
+                            ItemStack toOutput = result.copy();
+                            int maxStackSize = toOutput.getMaxStackSize();
+                            int toTake = Math.min(remaining, maxStackSize);
+                            toOutput.setCount(toTake);
+                            this.putIntoOutputOrDrop(toOutput);
+                            remaining -= toTake;
+                        }
                     }
 
                     this.onCrafted(this.recipe, actualExtractedMin);
