@@ -9,7 +9,6 @@ import appeng.hooks.ticking.TickHandler;
 import appeng.me.helpers.BlockEntityNodeListener;
 import appeng.me.helpers.IGridConnectedBlockEntity;
 import com.google.common.collect.Range;
-import com.google.common.collect.Streams;
 import net.lmor.botanicalextramachinery.ModBlocks;
 import net.lmor.botanicalextramachinery.ModItems;
 import net.lmor.botanicalextramachinery.blocks.base.WorkingTile;
@@ -24,6 +23,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -45,7 +45,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 public class BlockEntityRunicAltarPattern extends WorkingTile<RunicAltarRecipe>
         implements IInWorldGridNodeHost, IGridConnectedBlockEntity {
@@ -258,18 +257,20 @@ public class BlockEntityRunicAltarPattern extends WorkingTile<RunicAltarRecipe>
     }
 
     protected List<ItemStack> resultItems(RunicAltarRecipe recipe, @NotNull List<ItemStack> stacks) {
-        List res = Streams.concat(new Stream[]
-            {
-                stacks.stream()
-                    .filter((s) -> {return s.is(BotaniaTags.Items.RUNES);})
-                    .map(s -> {
-                        ItemStack copy = s.copy();
-                        copy.setCount(1);
-                        return copy;
-                }),
-                super.resultItems(recipe, stacks)
-                        .stream()
-            }).toList();
+        // Return one rune per rune ingredient of the recipe. The consumed stacks can be split
+        // across several input slots, so iterating them directly would return a rune per fragment.
+        List<ItemStack> res = new ArrayList<>();
+        for (Ingredient ingredient : recipe.getIngredients()) {
+            for (ItemStack s : stacks) {
+                if (s.is(BotaniaTags.Items.RUNES) && ingredient.test(s)) {
+                    ItemStack copy = s.copy();
+                    copy.setCount(1);
+                    res.add(copy);
+                    break;
+                }
+            }
+        }
+        res.addAll(super.resultItems(recipe, stacks));
         return res;
     }
 
