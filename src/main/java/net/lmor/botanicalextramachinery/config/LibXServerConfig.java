@@ -577,6 +577,9 @@ public class LibXServerConfig {
     @IntRange( min = 1 )
     public static int tickOutputSlots = 20;
 
+    @Config({"When several recipes match the items in a machine, craft the one with the most ingredients first. If false, the first matching recipe is used."})
+    public static boolean largestRecipeFirst = true;
+
     @Config({"Show/hide mechanism name in GUI. Priority over client."})
     public static boolean nameMechanism = true;
 

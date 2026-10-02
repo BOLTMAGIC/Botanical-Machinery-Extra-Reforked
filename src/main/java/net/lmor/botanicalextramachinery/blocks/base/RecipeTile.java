@@ -1,6 +1,7 @@
 package net.lmor.botanicalextramachinery.blocks.base;
 
 import com.google.common.collect.Streams;
+import net.lmor.botanicalextramachinery.config.LibXServerConfig;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.Container;
@@ -80,17 +81,25 @@ public abstract class RecipeTile<T extends Recipe<Container>> extends ExtraBotan
                 Objects.requireNonNull(inventory);
                 List<ItemStack> stacks = range.mapToObj(inventory::getStackInSlot).toList();
 
-                Iterator iterator = this.level.getRecipeManager().getAllRecipesFor(this.recipeType).iterator();
+                // Inputs may hold more items than a recipe needs, so a small recipe can match items
+                // meant for a bigger one. With largestRecipeFirst, pick the matching recipe with the
+                // most ingredients; on a tie the first one in recipe order wins.
+                boolean largestFirst = LibXServerConfig.largestRecipeFirst;
+                Recipe recipe = null;
+                for (T candidate : this.level.getRecipeManager().getAllRecipesFor(this.recipeType)) {
+                    // Skip recipes that cannot beat the current pick before the costlier match check
+                    if (recipe != null && candidate.getIngredients().size() <= recipe.getIngredients().size()) continue;
 
-                Recipe recipe;
-                do {
-                    if (!iterator.hasNext()) {
-                        this.recipe = null;
-                        return;
+                    if (!this.matchRecipe(candidate, stacks)) {
+                        recipe = candidate;
+                        if (!largestFirst) break;
                     }
+                }
 
-                    recipe = (Recipe)iterator.next();
-                } while(this.matchRecipe((T) recipe, stacks));
+                if (recipe == null) {
+                    this.recipe = null;
+                    return;
+                }
 
                 // Build a simple per-ingredient item array cache for fast matching when possible
                 List<Ingredient> ingredients = recipe.getIngredients();
