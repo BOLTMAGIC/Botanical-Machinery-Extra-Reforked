@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.1.3.0.4 — 2026-10-04
+### Fixed
+- Fix NBT-sensitive ingredient counting and crafting
+
 ## v0.1.3.0.3 — 2026-10-02
 ### Fixed
 - fixed getting more runes back than putting in when autocrafting (thx to Knozy)
