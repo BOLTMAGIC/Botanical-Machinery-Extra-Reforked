@@ -108,7 +108,7 @@ public abstract class RecipeTile<T extends Recipe<Container>> extends ExtraBotan
                 for (int ingIdx = 0; ingIdx < nIngredients; ingIdx++) {
                     Ingredient ing = ingredients.get(ingIdx);
                     ItemStack[] items = ing.getItems();
-                    if (items.length == 0) {
+                    if (!ing.isSimple() || items.length == 0) {
                         this.cachedIngredientItems.add(null);
                         continue;
                     }
@@ -128,6 +128,10 @@ public abstract class RecipeTile<T extends Recipe<Container>> extends ExtraBotan
                 List<ItemStack> consumedStacks = new ArrayList<>();
 
                 this.countCraftPerRecipe = maxCountCraft(recipe.getIngredients().iterator());
+                if (this.countCraftPerRecipe == 0) {
+                    this.recipe = null;
+                    return;
+                }
 
                 if (recipe.getResultItem(this.level.registryAccess()).getCount() != 0){
                     int remainingItemsToPlace;
@@ -238,49 +242,37 @@ public abstract class RecipeTile<T extends Recipe<Container>> extends ExtraBotan
             ingredients.add((Ingredient) iteratorRecipe.next());
         }
 
-        // First, collect which items are actually available
-        Map<Item, Integer> availableItemCounts = new HashMap<>();
-        Set<Item> availableItems = new HashSet<>();
+        List<ItemStack> availableStacks = new ArrayList<>();
         for (int slotIdx = this.firstInputSlot; slotIdx < this.firstOutputSlot; slotIdx++) {
             ItemStack slotStack = this.getInventory().getStackInSlot(slotIdx);
             if (!slotStack.isEmpty()) {
-                Item item = slotStack.getItem().asItem();
-                availableItems.add(item);
-                availableItemCounts.merge(item, slotStack.getCount(), Integer::sum);
+                availableStacks.add(slotStack);
             }
         }
 
-        // For each ingredient, determine which available item fulfills it and count how many times it's needed
-        Map<Item, Integer> itemRequirements = new HashMap<>();
-        for (Ingredient ingredient : ingredients) {
-            boolean found = false;
-            for (Item availableItem : availableItems) {
-                if (ingredient.test(new ItemStack(availableItem))) {
-                    itemRequirements.merge(availableItem, 1, Integer::sum);
-                    found = true;
+        if (ingredients.isEmpty()) return 0;
+
+        // Reserve counts in the same ingredient/slot order as extraction, keeping the real NBT.
+        for (int crafts = this.countCraft; crafts > 0; crafts--) {
+            int[] remaining = availableStacks.stream().mapToInt(ItemStack::getCount).toArray();
+            boolean complete = true;
+            for (Ingredient ingredient : ingredients) {
+                int needed = crafts;
+                for (int slot = 0; slot < availableStacks.size() && needed > 0; slot++) {
+                    if (remaining[slot] > 0 && ingredient.test(availableStacks.get(slot))) {
+                        int taken = Math.min(needed, remaining[slot]);
+                        remaining[slot] -= taken;
+                        needed -= taken;
+                    }
+                }
+                if (needed > 0) {
+                    complete = false;
                     break;
                 }
             }
-            if (!found) {
-                return 0;  // Missing ingredient
-            }
+            if (complete) return crafts;
         }
-
-        // Find the minimum possible crafts (bottleneck ingredient)
-        int minCraft = Integer.MAX_VALUE;
-        for (Item item : itemRequirements.keySet()) {
-            int available = availableItemCounts.getOrDefault(item, 0);
-            int required = itemRequirements.get(item);
-
-            int possibleCrafts = available / required;
-            minCraft = Math.min(minCraft, possibleCrafts);
-        }
-
-        // Limit by max craft count
-        if (minCraft == Integer.MAX_VALUE) minCraft = 0;
-        minCraft = Math.min(this.countCraft, minCraft);
-
-        return minCraft;
+        return 0;
     }
 
     protected void craftRecipe() {
@@ -297,32 +289,9 @@ public abstract class RecipeTile<T extends Recipe<Container>> extends ExtraBotan
                 List<Ingredient> ingredients = this.recipe.getIngredients();
                 int nIngredients = ingredients.size();
 
-                // Determine which available item fulfills each ingredient, tracking actual extraction
-                Map<Item, Integer> itemRequirements = new HashMap<>();
-                Map<Item, Integer> extractedPerItem = new HashMap<>();
+                int actualExtractedMin = Integer.MAX_VALUE;
 
-                // First pass: determine requirements based on available items
-                Set<Item> availableItems = new HashSet<>();
-                for (int slotIdx = this.firstInputSlot; slotIdx < this.firstOutputSlot; slotIdx++) {
-                    ItemStack slotStack = inventory.getStackInSlot(slotIdx);
-                    if (!slotStack.isEmpty()) {
-                        availableItems.add(slotStack.getItem().asItem());
-                    }
-                }
-
-                for (Ingredient ingredient : ingredients) {
-                    boolean found = false;
-                    for (Item availableItem : availableItems) {
-                        if (ingredient.test(new ItemStack(availableItem))) {
-                            itemRequirements.merge(availableItem, 1, Integer::sum);
-                            found = true;
-                            break;
-                        }
-                    }
-                }
-
-                // Second pass: extract items for each ingredient
-                // Must continue across slots if one slot doesn't have enough items
+                // Continue across slots if one slot doesn't have enough items for an ingredient.
                 for (int ingIdx = 0; ingIdx < nIngredients; ingIdx++) {
                     Ingredient ingredient = ingredients.get(ingIdx);
                     Item[] simple = this.cachedIngredientItems == null ? null : this.cachedIngredientItems.get(ingIdx);
@@ -340,33 +309,24 @@ public abstract class RecipeTile<T extends Recipe<Container>> extends ExtraBotan
                         }
 
                         if (matched) {
-                            Item itemType = cand.getItem().asItem();
                             ItemStack extracted = inventory.extractItem(slot, stillNeeded, false);
                             if (!extracted.isEmpty()) {
                                 int extractedCount = extracted.getCount();
                                 stillNeeded -= extractedCount;
-                                extractedPerItem.merge(itemType, extractedCount, Integer::sum);
                                 consumedStacks.add(extracted);
                                 usedStacks.accept(extracted, slot);
                             }
                             // Don't break - continue to next slot if we still need more
                         }
                     }
+                    actualExtractedMin = Math.min(actualExtractedMin, this.countCraftPerRecipe - stillNeeded);
                 }
 
-                // Determine actual minimum that was extracted (considering per-item requirements)
-                int actualExtractedMin = Integer.MAX_VALUE;
-                for (Item item : itemRequirements.keySet()) {
-                    int required = itemRequirements.get(item);
-                    int extracted = extractedPerItem.getOrDefault(item, 0);
-                    int possible = extracted / required;
-                    actualExtractedMin = Math.min(actualExtractedMin, possible);
-                }
                 if (actualExtractedMin == Integer.MAX_VALUE) {
                     actualExtractedMin = 0;
                 }
 
-                // Only produce if something was actually extracted
+                // Only produce crafts for which every ingredient was extracted.
                 if (actualExtractedMin > 0) {
                     List<ItemStack> results = this.resultItems(this.recipe, consumedStacks);
                     for (ItemStack result : results) {
