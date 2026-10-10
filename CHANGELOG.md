@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.1.3.0.5 — 2026-10-10
+### Fixed
+- Greenhouse now outputs every mana in its buffer, not just everything above 95%
+
 ## v0.1.3.0.4 — 2026-10-04
 ### Fixed
 - Fix NBT-sensitive ingredient counting and crafting
