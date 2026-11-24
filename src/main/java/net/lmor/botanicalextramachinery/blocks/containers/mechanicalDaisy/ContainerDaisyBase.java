@@ -10,31 +10,29 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.items.IItemHandlerModifiable;
-import net.minecraftforge.items.SlotItemHandler;
 import org.jetbrains.annotations.NotNull;
 import org.moddingx.libx.menu.BlockEntityMenu;
 
 import javax.annotation.Nonnull;
 
 public class ContainerDaisyBase extends BlockEntityMenu<BlockEntityDaisyBase> {
-    private static final int SIZE_INVENTORY = 8;
+    private static final int SIZE_INVENTORY = BlockEntityDaisyBase.SLOT_INVENTORY;
     public final static int WIDTH_GUI = 196;
     public final static int HEIGHT_GUI = 124;
 
     public ContainerDaisyBase(MenuType<? extends BlockEntityMenu<?>> type, int windowId, Level level, BlockPos pos, Inventory playerContainer, Player player) {
         super(type, windowId, level, pos, playerContainer, player, SIZE_INVENTORY, SIZE_INVENTORY);
 
-        IItemHandlerModifiable inventory = this.blockEntity.getInventory();
+        var inventory = this.blockEntity.getInventory();
 
-        this.addSlot(new SlotItemHandler(inventory, 0, 90, 26));
-        this.addSlot(new SlotItemHandler(inventory, 1, 112, 32));
-        this.addSlot(new SlotItemHandler(inventory, 2, 118, 54));
-        this.addSlot(new SlotItemHandler(inventory, 3, 112, 76));
-        this.addSlot(new SlotItemHandler(inventory, 4, 90, 82));
-        this.addSlot(new SlotItemHandler(inventory, 5, 68, 76));
-        this.addSlot(new SlotItemHandler(inventory, 6, 62, 54));
-        this.addSlot(new SlotItemHandler(inventory, 7, 68, 32));
+        this.addSlot(inventory.createSlot(0, 90, 26));
+        this.addSlot(inventory.createSlot(1, 112, 32));
+        this.addSlot(inventory.createSlot(2, 118, 54));
+        this.addSlot(inventory.createSlot(3, 112, 76));
+        this.addSlot(inventory.createSlot(4, 90, 82));
+        this.addSlot(inventory.createSlot(5, 68, 76));
+        this.addSlot(inventory.createSlot(6, 62, 54));
+        this.addSlot(inventory.createSlot(7, 68, 32));
 
         int[] x_y = ScreenAddInventory.getCoordInventorySlot(ScreenInventory.BASE, WIDTH_GUI, HEIGHT_GUI);
         this.layoutPlayerInventorySlots(x_y[0], x_y[1]);

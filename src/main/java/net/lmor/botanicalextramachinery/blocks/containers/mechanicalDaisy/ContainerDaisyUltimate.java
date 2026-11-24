@@ -10,7 +10,6 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.items.SlotItemHandler;
 import org.jetbrains.annotations.NotNull;
 import org.moddingx.libx.menu.BlockEntityMenu;
@@ -18,25 +17,34 @@ import org.moddingx.libx.menu.BlockEntityMenu;
 import javax.annotation.Nonnull;
 
 public class ContainerDaisyUltimate extends BlockEntityMenu<BlockEntityDaisyUltimate> {
-    // Force 8 inventory slots to match BlockEntityDaisyPattern which always uses 8 slots internally.
-    private static final int SIZE_INVENTORY = 8;
+    private static final int SIZE_INVENTORY = BlockEntityDaisyUltimate.SLOT_INVENTORY;
     public final static int WIDTH_GUI = 208;
     public final static int HEIGHT_GUI = 140;
 
     public ContainerDaisyUltimate(MenuType<? extends BlockEntityMenu<?>> type, int windowId, Level level, BlockPos pos, Inventory playerContainer, Player player) {
         super(type, windowId, level, pos, playerContainer, player, SIZE_INVENTORY + 1, SIZE_INVENTORY + 1);
 
-        IItemHandlerModifiable inventory = this.blockEntity.getInventory();
+        var inventory = this.blockEntity.getInventory();
 
-        // Only the first 8 machine slots are added (0..7). The upgrade slot is added separately below.
-        this.addSlot(new SlotItemHandler(inventory, 0, 96, 34));
-        this.addSlot(new SlotItemHandler(inventory, 1, 118, 40));
-        this.addSlot(new SlotItemHandler(inventory, 2, 124, 62));
-        this.addSlot(new SlotItemHandler(inventory, 3, 118, 84));
-        this.addSlot(new SlotItemHandler(inventory, 4, 96, 90));
-        this.addSlot(new SlotItemHandler(inventory, 5, 74, 84));
-        this.addSlot(new SlotItemHandler(inventory, 6, 68, 62));
-        this.addSlot(new SlotItemHandler(inventory, 7, 74, 40));
+        // All 18 processing slots; the catalyst upgrade is a separate handler.
+        this.addSlot(inventory.createSlot(0, 96, 34));
+        this.addSlot(inventory.createSlot(1, 118, 40));
+        this.addSlot(inventory.createSlot(2, 124, 62));
+        this.addSlot(inventory.createSlot(3, 118, 84));
+        this.addSlot(inventory.createSlot(4, 96, 90));
+        this.addSlot(inventory.createSlot(5, 74, 84));
+        this.addSlot(inventory.createSlot(6, 68, 62));
+        this.addSlot(inventory.createSlot(7, 74, 40));
+        this.addSlot(inventory.createSlot(8, 74, 19));
+        this.addSlot(inventory.createSlot(9, 50, 40));
+        this.addSlot(inventory.createSlot(10, 40, 62));
+        this.addSlot(inventory.createSlot(11, 50, 84));
+        this.addSlot(inventory.createSlot(12, 74, 105));
+        this.addSlot(inventory.createSlot(13, 118, 19));
+        this.addSlot(inventory.createSlot(14, 142, 40));
+        this.addSlot(inventory.createSlot(15, 152, 62));
+        this.addSlot(inventory.createSlot(16, 142, 84));
+        this.addSlot(inventory.createSlot(17, 118, 105));
 
         // Upgrade slot (separate handler)
         this.addSlot(new SlotItemHandler(this.blockEntity.getInventoryUpgrade(), 0, 166, 105));
@@ -47,38 +55,43 @@ public class ContainerDaisyUltimate extends BlockEntityMenu<BlockEntityDaisyUlti
 
     @Nonnull
     public ItemStack quickMoveStack(@Nonnull Player player, int index) {
-        ItemStack itemstack = ItemStack.EMPTY;
+        ItemStack original = ItemStack.EMPTY;
         Slot slot = this.slots.get(index);
-        if (slot.hasItem()) {
-            ItemStack stack = slot.getItem();
-            itemstack = stack.copy();
-
-            if (index < SIZE_INVENTORY) {
-                if (!this.moveItemStackTo(stack, SIZE_INVENTORY, 36 + SIZE_INVENTORY, true)) {
-                    return ItemStack.EMPTY;
-                }
-
-                slot.onQuickCraft(stack, itemstack);
-            } else {
-                if (!this.moveItemStackTo(stack, 0, SIZE_INVENTORY, false)) {
-                    return ItemStack.EMPTY;
-                }
-            }
-
-            if (stack.isEmpty()) {
-                slot.set(ItemStack.EMPTY);
-            } else {
-                slot.setChanged();
-            }
-
-            if (stack.getCount() == itemstack.getCount()) {
-                return ItemStack.EMPTY;
-            }
-
-            slot.onTake(player, stack);
+        if (!slot.hasItem()) {
+            return original;
         }
 
-        return itemstack;
+        ItemStack stack = slot.getItem();
+        original = stack.copy();
+        int upgradeSlot = SIZE_INVENTORY;
+        int playerStart = upgradeSlot + 1;
+        int playerEnd = playerStart + 36;
+
+        if (index < playerStart) {
+            // Both processing slots and the separate catalyst slot go to the player.
+            if (!this.moveItemStackTo(stack, playerStart, playerEnd, true)) {
+                return ItemStack.EMPTY;
+            }
+            slot.onQuickCraft(stack, original);
+        } else {
+            // Catalysts go into the dedicated upgrade slot, not processing slots.
+            boolean moved = this.slots.get(upgradeSlot).mayPlace(stack)
+                    && this.moveItemStackTo(stack, upgradeSlot, upgradeSlot + 1, false);
+            if (!moved && !this.moveItemStackTo(stack, 0, SIZE_INVENTORY, false)) {
+                return ItemStack.EMPTY;
+            }
+        }
+
+        if (stack.isEmpty()) {
+            slot.set(ItemStack.EMPTY);
+        } else {
+            slot.setChanged();
+        }
+        if (stack.getCount() == original.getCount()) {
+            return ItemStack.EMPTY;
+        }
+        slot.onTake(player, stack);
+        return original;
     }
 
     @Override
