@@ -1,6 +1,19 @@
 package net.lmor.botanicalextramachinery.blocks.pattern;
 
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.BiPredicate;
+
+import javax.annotation.Nonnull;
+
+import org.jetbrains.annotations.Nullable;
+import org.moddingx.libx.base.tile.BlockEntityBase;
+import org.moddingx.libx.base.tile.TickingBlock;
+import org.moddingx.libx.capability.ItemCapabilities;
+import org.moddingx.libx.inventory.BaseItemStackHandler;
+
 import appeng.api.config.Actionable;
 import appeng.api.networking.GridHelper;
 import appeng.api.networking.IGridNode;
@@ -37,30 +50,17 @@ import net.minecraft.world.level.material.Fluids;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
+import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.minecraftforge.fluids.capability.templates.FluidTank;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.items.ItemStackHandler;
-import org.moddingx.libx.base.tile.BlockEntityBase;
-import org.moddingx.libx.base.tile.TickingBlock;
-import org.moddingx.libx.capability.ItemCapabilities;
-import org.moddingx.libx.inventory.BaseItemStackHandler;
+import net.minecraftforge.items.SlotItemHandler;
 import vazkii.botania.api.internal.VanillaPacketDispatcher;
 import vazkii.botania.api.recipe.PureDaisyRecipe;
 import vazkii.botania.client.fx.WispParticleData;
 import vazkii.botania.common.block.BotaniaBlocks;
 import vazkii.botania.common.crafting.BotaniaRecipeTypes;
-
-import javax.annotation.Nonnull;
-
-import org.jetbrains.annotations.Nullable;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.function.BiPredicate;
-
-import net.minecraftforge.fluids.capability.IFluidHandler;
-import net.minecraftforge.fluids.capability.templates.FluidTank;
-import net.minecraftforge.fluids.FluidStack;
 
 public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingBlock,
         IInWorldGridNodeHost, IGridConnectedBlockEntity {
@@ -76,7 +76,6 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
     private final LazyOptional<IItemHandlerModifiable> hopperInventory;
     private final int countSlotInventory;
     private final SettingPattern setting;
-    private boolean recipeOutputItem = false;
 
     private final FluidTank tank;
     private final LazyOptional<IFluidHandler> lazyFluid;
@@ -98,9 +97,7 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
                     .build();
         }
 
-        // Acknowledge the constructor parameter to avoid unused-parameter warnings and force 8 slots.
-        int ignoredCountParam = countSlotInventory;
-        this.countSlotInventory = 8;
+        this.countSlotInventory = countSlotInventory;
         this.setting = settingPattern;
         this.sizeItemSlots = settingPattern.getConfigInt("sizeSlots");
 
@@ -128,6 +125,7 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
     // region: Base behavior and ticking logic
     public void tick() {
         boolean hasSpawnedParticles = false;
+        boolean producedOutput = false;
 
         for (int i = 0; i < this.countSlotInventory; ++i) {
             if (!this.inventory.getStackInSlot(i).isEmpty() &&
@@ -144,9 +142,11 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
                     if (this.workingTicks[i] >= recipe.getTime() * this.setting.getConfigInt("durationTime")) {
                         BlockState state = recipe.getOutputState();
 
-                        this.recipeOutputItem = true;
                         //noinspection deprecation
-                        this.inventory.setStackInSlot(i, state.getBlock().getCloneItemStack(this.level, this.worldPosition, state));
+                        ItemStack output = state.getBlock().getCloneItemStack(this.level, this.worldPosition, state);
+                        output.setCount(this.inventory.getStackInSlot(i).getCount());
+                        this.inventory.setStackInSlot(i, output);
+                        producedOutput = true;
 
                         this.workingTicks[i] = -1;
                         this.setDispatchable();
@@ -161,7 +161,8 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
                     WispParticleData data = WispParticleData.wisp((float) Math.random() / 2.0F, 1.0F, 1.0F, 1.0F);
                     this.level.addParticle(data, x, y, z, 0.0, 0.0, 0.0);
                 }
-            } else if (this.workingTicks[i] < 0 && !this.inventory.getStackInSlot(i).isEmpty()) {
+            } else if (!this.inventory.getStackInSlot(i).isEmpty() && (this.workingTicks[i] < 0
+                    || (recipe == null && this.inventory.getStackInSlot(i).is(Blocks.SNOW_BLOCK.asItem())))) {
                 this.workingTicks[i] = -1;
             } else {
                 this.workingTicks[i] = 0;
@@ -172,11 +173,6 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
 
             if (!this.getMainNode().isReady()) {
                 this.getMainNode().create(this.level, this.getBlockPos());
-            }
-
-            if (this.getMainNode().isReady() && this.recipeOutputItem) {
-                exportResultsItemsME();
-                this.recipeOutputItem = false;
             }
 
             FluidStack fluidInTank = this.tank.getFluid();
@@ -215,6 +211,7 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
                                 put = Math.min(put, maxByWater);
                                 if (put > 0) {
                                     this.inventory.setStackInSlot(slot, new ItemStack(Blocks.SNOW_BLOCK, put));
+                                    this.workingTicks[slot] = -1;
                                     waterAvailable -= 1000 * put;
                                     totalCreated += put;
                                 }
@@ -226,6 +223,7 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
                                     put = Math.min(put, maxByWater);
                                     s.grow(put);
                                     this.inventory.setStackInSlot(slot, s);
+                                    this.workingTicks[slot] = -1;
                                     waterAvailable -= 1000 * put;
                                     totalCreated += put;
                                 }
@@ -245,9 +243,9 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
                 this.waterProgress = 0;
             }
 
-            if (createdSnow) {
-                this.setChanged();
-                this.setDispatchable();
+            if ((producedOutput || createdSnow || this.level.getGameTime() % 20 == 0)
+                    && this.getMainNode().isOnline()) {
+                exportResultsItemsME();
             }
 
             if (this.ticksToNextUpdate <= 0) {
@@ -346,17 +344,25 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
         return super.getCapability(cap, side);
     }
 
-    public void load(@Nonnull CompoundTag nbt) {
-        super.load(nbt);
+    /** Restore saved items and progress while expanding older eight-slot Daisy saves. */
+    private void readInventoryState(CompoundTag nbt) {
         if (nbt.contains("invBase")) {
-            this.inventory.deserializeNBT(nbt.getCompound("invBase"));
+            CompoundTag inventoryNbt = nbt.getCompound("invBase").copy();
+            // ItemStackHandler.deserializeNBT reads "Size" and resizes its backing list.
+            inventoryNbt.putInt("Size", this.countSlotInventory);
+            this.inventory.deserializeNBT(inventoryNbt);
         }
         if (nbt.contains("workingTicks")) {
-            this.workingTicks = nbt.getIntArray("workingTicks");
+            this.workingTicks = Arrays.copyOf(nbt.getIntArray("workingTicks"), this.countSlotInventory);
         }
-        if (nbt.contains("inv")) {
-            this.getInventoryUpgrade().deserializeNBT(nbt.getCompound("inv"));
+        if (nbt.contains("inv") && this.inventoryUpgrade != null) {
+            this.inventoryUpgrade.deserializeNBT(nbt.getCompound("inv"));
         }
+    }
+
+    public void load(@Nonnull CompoundTag nbt) {
+        super.load(nbt);
+        this.readInventoryState(nbt);
         if (nbt.contains("tank")) {
             FluidStack loaded = FluidStack.loadFluidStackFromNBT(nbt.getCompound("tank"));
             if (loaded != null && !loaded.isEmpty() && Fluids.WATER.isSame(loaded.getFluid())) {
@@ -389,15 +395,7 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
     public void handleUpdateTag(CompoundTag nbt) {
         if (this.level == null || this.level.isClientSide) {
             super.handleUpdateTag(nbt);
-            if (nbt.contains("invBase")) {
-                this.inventory.deserializeNBT(nbt.getCompound("invBase"));
-            }
-            if (nbt.contains("workingTicks")) {
-                this.workingTicks = nbt.getIntArray("workingTicks");
-            }
-            if (nbt.contains("inv")) {
-                this.getInventoryUpgrade().deserializeNBT(nbt.getCompound("inv"));
-            }
+            this.readInventoryState(nbt);
             if (nbt.contains("tank")) {
                 FluidStack loaded = FluidStack.loadFluidStackFromNBT(nbt.getCompound("tank"));
                 if (loaded != null && !loaded.isEmpty() && Fluids.WATER.isSame(loaded.getFluid())) {
@@ -440,10 +438,10 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
         }
 
         public void setStackInSlot(int slot, @Nonnull ItemStack stack) {
-            if (recipeOutputItem) {
-                stack.setCount(inventory.getStackInSlot(slot).getCount());
+            if (!ItemStack.isSameItemSameTags(this.getStackInSlot(slot), stack)) {
+                workingTicks[slot] = 0;
             }
-            this.stacks.set(slot, stack);
+            super.setStackInSlot(slot, stack);
         }
 
         public int getSlots() {
@@ -462,19 +460,19 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
             return super.insertItem(slot, stack, simulate);
         }
 
-        @Nonnull
-        public ItemStack extractItem(int slot, int amount, boolean simulate) {
-            if (getMainNode() != null && getMainNode().getNode() != null && getMainNode().isOnline()) {
-                ItemStack stackInSlot = getInventory().getStackInSlot(slot);
-                if (!stackInSlot.isEmpty()) {
-                    int getCountExport = Math.toIntExact(Objects.requireNonNull(getMainNode().getGrid()).getStorageService().getInventory().insert(AEItemKey.of(stackInSlot), stackInSlot.getCount(), Actionable.MODULATE, IActionSource.empty()));
-                    if (getCountExport > 0) {
-                        stackInSlot.shrink(getCountExport);
-                        inventory.setStackInSlot(slot, stackInSlot);
-                    }
+        public SlotItemHandler createSlot(int slot, int x, int y) {
+            return new SlotItemHandler(this, slot, x, y) {
+                @Override
+                public int getMaxStackSize(@Nonnull ItemStack stack) {
+                    // The default implementation temporarily empties the handler, resetting recipe progress.
+                    return Math.min(getSlotLimit(slot), stack.getMaxStackSize());
                 }
-            }
-            return super.extractItem(slot, amount, simulate);
+
+                @Override
+                public void setChanged() {
+                    onContentsChanged(slot);
+                }
+            };
         }
 
         public int getSlotLimit(int slot) {
@@ -565,17 +563,20 @@ public class BlockEntityDaisyPattern extends BlockEntityBase implements TickingB
     }
 
     private void exportResultsItemsME() {
+        var grid = this.getMainNode().getGrid();
+        if (grid == null) return;
+
+        var storage = grid.getStorageService().getInventory();
         for (int slot = 0; slot < this.countSlotInventory; slot++) {
-            ItemStack stackInSlot = this.inventory.getStackInSlot(slot);
-            if (!stackInSlot.isEmpty()) {
-                int getCountExport = Math.toIntExact(Objects.requireNonNull(getMainNode().getGrid()).getStorageService().getInventory().insert(AEItemKey.of(stackInSlot), stackInSlot.getCount(), Actionable.MODULATE, IActionSource.empty()));
-                if (getCountExport > 0) {
-                    stackInSlot.shrink(getCountExport);
-                    this.inventory.setStackInSlot(slot, stackInSlot);
-                    this.inventory.onContentsChanged(slot);
-                }
+            ItemStack stack = this.inventory.getStackInSlot(slot);
+            if (this.workingTicks[slot] >= 0 || stack.isEmpty()) continue;
+            int accepted = Math.toIntExact(storage.insert(AEItemKey.of(stack), stack.getCount(),
+                    Actionable.MODULATE, IActionSource.empty()));
+            if (accepted > 0) {
+                ItemStack remainder = stack.copy();
+                remainder.shrink(accepted);
+                this.inventory.setStackInSlot(slot, remainder);
             }
-            this.activeUpgradeSlot(slot);
         }
     }
 
